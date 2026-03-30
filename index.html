@@ -974,14 +974,14 @@ function parseYtData(data, channelId, channelLabel, forcedType) {
     const id = vr.videoId;
     const tt = vr.publishedTimeText?.simpleText ?? '';
     const isLiveNow = vr.badges?.some(b =>
-      b.metadataBadgeRenderer?.style === 'BADGE_STYLE_TYPE_LIVE_NOW'
+      /LIVE_NOW|LIVE/.test(b.metadataBadgeRenderer?.style ?? '')
     ) || vr.thumbnailOverlays?.some(o =>
-      o.thumbnailOverlayTimeStatusRenderer?.style === 'LIVE'
-    );
+      /^LIVE$/.test(o.thumbnailOverlayTimeStatusRenderer?.style ?? '')
+    ) || /^LIVE$/.test(vr.thumbnailOverlays?.[0]?.thumbnailOverlayTimeStatusRenderer?.text?.simpleText ?? '');
     const type = forcedType === 'short' ? 'short'
                : isLiveNow             ? 'live'
                : 'video';
-    // 라이브 영상은 publishedTimeText 없음 → 현재 시각 사용
+    // 라이브는 publishedTimeText 없음 → now, 일반 영상도 빈 tt면 now
     const publishedAt = isLiveNow ? now : parseRel(tt, now);
     return {
       id,
@@ -1268,6 +1268,13 @@ function setFilter(el, filterId) {
   document.querySelectorAll('.t-section').forEach(sec => {
     const visibleRails = [...sec.querySelectorAll('.rail-wrap')].filter(w => w.style.display !== 'none');
     sec.style.display  = visibleRails.length ? '' : 'none';
+  });
+
+  // 필터 후 각 rail의 화살표 가시성 재계산
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.rail').forEach(rail => {
+      rail.dispatchEvent(new Event('scroll'));
+    });
   });
 }
 
