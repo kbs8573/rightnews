@@ -891,8 +891,9 @@ function parseYtData(data, channelId, channelLabel, forcedType) {
         id,
         type: 'short',
         title,
-        thumb: `https://i.ytimg.com/vi/${id}/oq.jpg`,
-        publishedAt: new Date(now - 7 * 864e5), // 날짜 정보 없음 → 기본값
+        thumb: slv.onTap?.innertubeCommand?.reelWatchEndpoint?.thumbnail?.thumbnails?.[0]?.url
+               ?? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+        publishedAt: new Date(now - 45 * 864e5), // 날짜 정보 없음 → "그 이전" 버킷
         timeText: '',
         views,
         url: `https://www.youtube.com/shorts/${id}`,
