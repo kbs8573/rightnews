@@ -164,6 +164,7 @@
     .c-ch1 { background: var(--c1-bg); color: var(--c1); }
     .c-ch2 { background: var(--c2-bg); color: var(--c2); }
     .c-ch3 { background: var(--c3-bg); color: var(--c3); }
+    .c-ch4 { background: var(--c4-bg); color: var(--c4); }
 
     /* ── 모바일: 칩을 가로 스크롤 ── */
     @media (max-width: 600px) {
@@ -223,7 +224,6 @@
     }
     .rl-video { background: rgba(96,165,250,.15);  color: #60a5fa; border: 1px solid rgba(96,165,250,.3); }
     .rl-short { background: rgba(251,146,60,.15);  color: #fb923c; border: 1px solid rgba(251,146,60,.3); }
-    .rl-ch3 { background: var(--c3-bg); color: var(--c3); border: 1px solid var(--c3-bd); }
 
     /* ── Rail (horizontal scroll) ── */
     .rail {
@@ -687,13 +687,31 @@ const CHANNELS = [
     filterId: 'sensorstudio',
     ytUrl:    'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624',
   },
+  {
+    id:       'malsenecjip',
+    label:    '말세네집',
+    videosUrl: 'https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/videos',
+    shortsUrl: 'https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/shorts',
+    filterId: 'malsenecjip',
+    ytUrl:    'https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1',
+  },
+  {
+    id:       'dasireodneun',
+    label:    '다시읽는사회과부도',
+    videosUrl: 'https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/videos',
+    shortsUrl: 'https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/shorts',
+    filterId: 'dasireodneun',
+    ytUrl:    'https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4',
+  },
 ];
 
 // ── 필터 설정 (UI 표시용) ─────────────────────────────────
 const FILTERS = [
-  { id: 'jeonhangil',   label: '전한길뉴스', cls: 'c-ch0', rlCls: 'rl-ch0' },
-  { id: 'jjinkwak',     label: '꽉TV',        cls: 'c-ch1', rlCls: 'rl-ch1' },
-  { id: 'sensorstudio', label: '센서스튜디오', cls: 'c-ch2', rlCls: 'rl-ch2' },
+  { id: 'jeonhangil',   label: '전한길뉴스',      cls: 'c-ch0', rlCls: 'rl-ch0' },
+  { id: 'jjinkwak',     label: '꽉TV',             cls: 'c-ch1', rlCls: 'rl-ch1' },
+  { id: 'sensorstudio', label: '센서스튜디오',     cls: 'c-ch2', rlCls: 'rl-ch2' },
+  { id: 'malsenecjip',  label: '말세네집',          cls: 'c-ch3', rlCls: 'rl-ch3' },
+  { id: 'dasireodneun', label: '다시읽는사회과부도', cls: 'c-ch4', rlCls: 'rl-ch4' },
 ];
 
 const PROXIES = [
