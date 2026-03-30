@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark" />
-  <title>우파뉴스 모아보기</title>
+  <title>rightnews 모아보기</title>
   <meta name="theme-color" content="#141414" />
   <style>
     :root {
@@ -365,7 +365,8 @@
     .card-v { width: var(--v-w); }
     .card-v .thumb { aspect-ratio: 16/9; }
     .card-s { width: var(--s-w); }
-    .card-s .thumb { height: 240px; }
+    .card-s .thumb { aspect-ratio: 9/16; }
+    .card-s .thumb img { object-position: center center; }
 
     .thumb {
       position: relative; background: var(--surface2); overflow: hidden;
@@ -423,9 +424,9 @@
       align-items: center; justify-content: center; gap: 8px;
       cursor: pointer; color: var(--muted); text-decoration: none;
       transition: border-color .2s, color .2s;
-      min-height: 160px;
+      aspect-ratio: 16/9;
     }
-    .load-more-card.short-size { width: var(--s-w); min-height: 240px; }
+    .load-more-card.short-size { width: var(--s-w); aspect-ratio: 9/16; }
     .load-more-card:hover { border-color: #ef4444; color: #ef4444; }
     .load-more-card svg { width: 28px; height: 28px; }
     .load-more-card span { font-size: 12px; font-weight: 600; }
@@ -1023,7 +1024,7 @@ function loadMoreLazy(t, rail, arrR) {
 
   if (offset >= store.length) {
     if (!rail.querySelector('.fetch-more-card'))
-      addFetchMoreCard(rail);
+      addFetchMoreCard(rail, t);
     return;
   }
 
@@ -1037,7 +1038,7 @@ function loadMoreLazy(t, rail, arrR) {
   if (lazyOffset[t.id] < store.length) {
     addLoadMoreCard(rail, t, arrR);
   } else {
-    addFetchMoreCard(rail);
+    addFetchMoreCard(rail, t);
   }
 
   requestAnimationFrame(() => {
@@ -1049,7 +1050,7 @@ function loadMoreLazy(t, rail, arrR) {
 function addLoadMoreCard(rail, t, arrR) {
   const remaining = lazyStore[t.id].length - lazyOffset[t.id];
   const card = document.createElement('div');
-  card.className = 'load-more-card';
+  card.className = `load-more-card${t.isShort ? ' short-size' : ''}`;
   card.innerHTML = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <circle cx="12" cy="12" r="10"/>
@@ -1057,14 +1058,14 @@ function addLoadMoreCard(rail, t, arrR) {
       <line x1="12" y1="8" x2="12" y2="16"/>
     </svg>
     <span>+${remaining}개 더 보기</span>`;
-  card.onclick = () => { card.remove(); loadMoreLazy(f, rail, arrR); };
+  card.onclick = () => { card.remove(); loadMoreLazy(t, rail, arrR); };
   rail.appendChild(card);
 }
 
-function addFetchMoreCard(rail) {
+function addFetchMoreCard(rail, t) {
   if (rail.querySelector('.fetch-more-card')) return;
   const card = document.createElement('div');
-  card.className = 'load-more-card fetch-more-card';
+  card.className = `load-more-card fetch-more-card${t?.isShort ? ' short-size' : ''}`;
   card.innerHTML = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
