@@ -722,10 +722,10 @@ const PROXIES = [
 ];
 
 const CATS = [
-  { id:0, label:'오늘',                    badge:'TODAY',     cls:'ts-0' },
-  { id:1, label:'어제',                    badge:'YESTERDAY', cls:'ts-1' },
-  { id:2, label:'이번 주',                 badge:'THIS WEEK', cls:'ts-3' },
-  { id:3, label:'일주일 이상 지난 영상들',  badge:'OLDER',    cls:'ts-4' },
+  { id:0, label:'오늘',                    badge:'',  cls:'ts-0' },
+  { id:1, label:'어제',                    badge:'',  cls:'ts-1' },
+  { id:2, label:'이번 주',                 badge:'',  cls:'ts-3' },
+  { id:3, label:'일주일 이상 지난 영상들',  badge:'',  cls:'ts-4' },
 ];
 
 // 지난주 이상: 처음 3개만, 이후 lazy load
@@ -1045,7 +1045,7 @@ function render(videos) {
     head.innerHTML = `
       <div class="t-head-left">
         <span class="t-name">${cat.label}</span>
-        <span class="t-badge">${cat.badge}</span>
+        ${cat.badge ? `<span class="t-badge">${cat.badge}</span>` : ''}
       </div>
       <div class="t-head-right"></div>`;
     sec.appendChild(head);
