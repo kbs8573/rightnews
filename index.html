@@ -800,15 +800,57 @@ async function loadVideos() {
     return;
   }
 
-  // 모든 채널 videos + shorts 병렬 스크래핑
-  const tasks = CHANNELS.flatMap(ch => [
-    scrapeChannelUrl(ch, ch.videosUrl, 'video'),
-    scrapeChannelUrl(ch, ch.shortsUrl, 'short'),
-  ]);
-  const results = await Promise.allSettled(tasks);
-  const allVideos = results
+  // 채널별 병렬 처리: videos + shorts 스크래핑 → RSS로 Shorts 날짜 보정
+  const channelResults = await Promise.allSettled(
+    CHANNELS.map(async ch => {
+      const [vRes, sRes] = await Promise.allSettled([
+        scrapeChannelUrl(ch, ch.videosUrl, 'video'),
+        scrapeChannelUrl(ch, ch.shortsUrl, 'short'),
+      ]);
+      const channelId = vRes.value?.channelId || sRes.value?.channelId;
+      let items = [
+        ...(vRes.value?.videos || []),
+        ...(sRes.value?.videos || []),
+      ].filter(Boolean);
+
+      // RSS로 Shorts 실제 날짜 보정 (날짜 없이 기본값이 들어간 항목 수정)
+      if (channelId && items.some(v => v.type === 'short')) {
+        const rssDates = await fetchRssDates(channelId);
+        if (Object.keys(rssDates).length) {
+          items = items.map(v =>
+            (v.type === 'short' && rssDates[v.id])
+              ? { ...v, publishedAt: rssDates[v.id] }
+              : v
+          );
+        }
+      }
+      return items;
+    })
+  );
+
+  // 합치기 + 중복 제거 (같은 id 중 short 타입 우선)
+  const raw = channelResults
     .filter(r => r.status === 'fulfilled' && r.value?.length)
-    .flatMap(r => r.value)
+    .flatMap(r => r.value);
+
+  const seen = new Map();
+  const deduped = [];
+  for (const v of raw) {
+    if (!seen.has(v.id)) {
+      seen.set(v.id, deduped.length);
+      deduped.push(v);
+    } else if (v.type === 'short') {
+      deduped[seen.get(v.id)] = v;
+    }
+  }
+
+  // 1주일 이내 영상만 표시
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000);
+  const allVideos = deduped
+    .filter(v => {
+      const pub = v.publishedAt instanceof Date ? v.publishedAt : new Date(v.publishedAt);
+      return pub >= sevenDaysAgo;
+    })
     .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
   show('loading', false);
@@ -834,10 +876,10 @@ async function fetchDataJson() {
 
 async function scrapeChannelUrl(ch, url, forcedType) {
   const html = await raceProxies(url);
-  if (!html) return null;
+  if (!html) return { channelId: null, videos: [] };
   try {
     const idx = html.indexOf('var ytInitialData = ');
-    if (idx < 0) return null;
+    if (idx < 0) return { channelId: null, videos: [] };
     const s = html.indexOf('{', idx);
     let d = 0, i = s;
     for (; i < html.length; i++) {
@@ -846,8 +888,31 @@ async function scrapeChannelUrl(ch, url, forcedType) {
     }
     const data = JSON.parse(html.slice(s, i + 1));
     const filter = FILTERS.find(f => f.id === ch.filterId);
-    return parseYtData(data, ch.filterId, filter?.label || ch.label, forcedType);
-  } catch { return null; }
+    // externalId = UCxxxx 채널 ID (RSS에 필요)
+    const channelId = data?.header?.c4TabbedHeaderRenderer?.channelId
+      ?? data?.metadata?.channelMetadataRenderer?.externalId
+      ?? null;
+    const videos = parseYtData(data, ch.filterId, filter?.label || ch.label, forcedType) ?? [];
+    return { channelId, videos };
+  } catch { return { channelId: null, videos: [] }; }
+}
+
+// RSS 피드에서 최근 15개 영상의 videoId → publishedAt 맵 반환
+async function fetchRssDates(channelId) {
+  if (!channelId) return {};
+  const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+  const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(rssUrl)}`;
+  try {
+    const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return {};
+    const xml = await r.text();
+    const map = {};
+    const entries = xml.matchAll(/<yt:videoId>([^<]+)<\/yt:videoId>[\s\S]*?<published>([^<]+)<\/published>/g);
+    for (const m of entries) {
+      map[m[1]] = new Date(m[2]);
+    }
+    return map;
+  } catch { return {}; }
 }
 
 async function raceProxies(url) {
