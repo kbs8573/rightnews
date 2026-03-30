@@ -1166,14 +1166,26 @@ function setFilter(el, filterId) {
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
 
-  // 채널 필터: filterId가 채널 id면 해당 채널 영상만 보임 (rail-wrap은 타입별이므로 카드 기준 필터)
+  // 채널 필터 적용 전: lazy store에 남은 카드를 전부 DOM에 플러시
+  // (말세네집처럼 Shorts만 있어 전부 "그 이전" 버킷에 들어간 채널이 필터에서 보이도록)
+  if (filterId !== 'all') {
+    TYPES.forEach(t => {
+      const rail = document.querySelector(`#rail-${t.id}-${LAZY_CAT}`);
+      if (!rail) return;
+      const store = lazyStore[t.id] || [];
+      if (lazyOffset[t.id] < store.length) {
+        rail.querySelectorAll('.load-more-card, .fetch-more-card').forEach(e => e.remove());
+        store.slice(lazyOffset[t.id]).forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
+        lazyOffset[t.id] = store.length;
+      }
+    });
+  }
+
   document.querySelectorAll('.rail-wrap').forEach(wrap => {
     if (filterId === 'all') {
       wrap.style.display = '';
-      // 모든 카드 표시
       wrap.querySelectorAll('.card[data-vid]').forEach(c => c.style.display = '');
     } else {
-      // 해당 채널 카드만 표시, 없으면 rail-wrap 숨김
       let visible = 0;
       wrap.querySelectorAll('.card[data-vid]').forEach(c => {
         const show = c.dataset.ch === filterId;
