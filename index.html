@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>우파뉴스 모아보기</title>
+  <meta name="theme-color" content="#141414" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:       #141414;
+      --surface:  #1f1f1f;
+      --surface2: #2a2a2a;
+      --border:   #333;
+      --text:     #e5e5e5;
+      --muted:    #777;
+      --header:   #000;
+      --spinner-track: #333;
+
+      --c0: #4ade80; --c0-bg: rgba(74,222,128,.12);  --c0-bd: rgba(74,222,128,.3);
+      --c1: #60a5fa; --c1-bg: rgba(96,165,250,.12);  --c1-bd: rgba(96,165,250,.3);
+      --c2: #f472b6; --c2-bg: rgba(244,114,182,.12); --c2-bd: rgba(244,114,182,.3);
+      --c3: #fb923c; --c3-bg: rgba(251,146,60,.12);  --c3-bd: rgba(251,146,60,.3);
+      --c4: #a1a1aa; --c4-bg: rgba(161,161,170,.1);  --c4-bd: rgba(161,161,170,.3);
+
+      --v-w: 258px;
+      --s-w: 145px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      overflow-x: hidden; }
+
+    /* ── Netflix Nav ── */
+    #nf-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: 68px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 4%;
+      background: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, transparent 100%);
+      transition: background .4s;
+    }
+    #nf-nav.solid { background: #141414; }
+    .nf-logo {
+      display: flex; flex-direction: column; justify-content: center;
+      cursor: default; user-select: none; line-height: 1;
+    }
+    .nf-logo-sub {
+      font-size: 9px; font-weight: 800; letter-spacing: 2.5px;
+      color: rgba(255,255,255,.5); text-transform: uppercase;
+    }
+    .nf-logo-main {
+      font-size: 24px; font-weight: 900; letter-spacing: -1px;
+      color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.6);
+    }
+    .nf-logo-fact {
+      font-size: 9px; font-weight: 800; letter-spacing: 2.5px;
+      color: #e50914; text-transform: uppercase; text-align: right;
+    }
+    .nf-nav-right { display: flex; align-items: center; gap: 12px; }
+    .upd-time { font-size: 11px; color: rgba(255,255,255,.4); }
+    .btn-refresh {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+      color: rgba(255,255,255,.85); width: 36px; height: 36px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .2s, transform .3s; flex-shrink: 0;
+    }
+    .btn-refresh:hover { background: #e50914; border-color: #e50914; color: #fff; }
+    .btn-refresh:active { transform: rotate(180deg); }
+
+    /* ── Hero ── */
+    #hero {
+      position: relative; width: 100%; height: 85vh; min-height: 520px;
+      overflow: hidden; background: #000;
+    }
+    #hero-thumb {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center top;
+      transition: opacity 1s ease;
+    }
+    #hero-iframe {
+      position: absolute;
+      top: -60px; left: -10%;
+      width: 120%; height: calc(100% + 120px);
+      border: none; pointer-events: none;
+      transition: opacity 1s ease;
+    }
+    #hero-gradient {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        linear-gradient(to right, rgba(0,0,0,.75) 0%, rgba(0,0,0,.25) 55%, transparent 100%),
+        linear-gradient(to top, #141414 0%, rgba(20,20,20,.65) 22%, transparent 55%);
+    }
+    #hero-info {
+      position: absolute; bottom: 30%; left: 4%; max-width: 44%;
+    }
+    #hero-ch-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+      color: rgba(255,255,255,.55); margin-bottom: 14px;
+    }
+    #hero-title {
+      font-size: clamp(22px, 3.4vw, 52px); font-weight: 900; line-height: 1.15;
+      color: #fff; text-shadow: 0 2px 14px rgba(0,0,0,.7);
+      margin-bottom: 24px;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    #hero-btns { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .h-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 26px; border-radius: 4px;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      border: none; text-decoration: none; transition: opacity .2s;
+    }
+    .h-btn-play { background: #fff; color: #000; }
+    .h-btn-play:hover { opacity: .85; }
+    .h-btn-more { background: rgba(109,109,110,.7); color: #fff; }
+    .h-btn-more:hover { background: rgba(109,109,110,.5); }
+    #hero-mute {
+      position: absolute; bottom: 30%; right: 4%;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: transparent; border: 2px solid rgba(255,255,255,.6);
+      color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .2s, background .2s;
+    }
+    #hero-mute:hover { border-color: #fff; background: rgba(255,255,255,.15); }
+    #hero-replay {
+      position: absolute; bottom: 30%; right: 4%;
+      padding: 8px 18px; border-radius: 4px;
+      background: rgba(0,0,0,.6); border: 2px solid rgba(255,255,255,.5);
+      color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+      display: none; transition: background .2s;
+    }
+    #hero-replay:hover { background: rgba(255,255,255,.15); }
+
+    /* ── Sub-header info ── */
+    .sub-info {
+      background: var(--header); border-bottom: 1px solid var(--border);
+      padding: 8px 24px; display: flex; align-items: center; gap: 10px;
+    }
+    .sub-info span { font-size: 12px; color: var(--muted); }
+
+    /* ── Filter chips ── */
+    .filter-bar {
+      background: var(--header); border-bottom: 1px solid var(--border);
+      display: flex; gap: 8px; padding: 12px 24px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .chip {
+      padding: 6px 14px; border-radius: 100px; white-space: nowrap;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: 2px solid transparent; transition: all .15s;
+      display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+      user-select: none;
+    }
+    .chip .cnt { background: rgba(255,255,255,.18); border-radius: 100px; padding: 1px 6px; font-size: 10px; }
+    .chip.active { border-color: currentColor; }
+    .c-all { background: rgba(255,255,255,.1); color: #ffffff; }
+    .c-ch0 { background: var(--c0-bg); color: var(--c0); }
+    .c-ch1 { background: var(--c1-bg); color: var(--c1); }
+    .c-ch2 { background: var(--c2-bg); color: var(--c2); }
+    .c-ch3 { background: var(--c3-bg); color: var(--c3); }
+
+    /* ── 모바일: 칩을 가로 스크롤 ── */
+    @media (max-width: 600px) {
+      .filter-bar {
+        gap: 6px; padding: 10px 12px;
+      }
+      .chip {
+        padding: 7px 12px; font-size: 11px;
+      }
+    }
+
+    /* ── Main ── */
+    main { padding: 4px 0 60px; }
+
+    /* ── Time section ── */
+    .t-section { margin-bottom: 8px; }
+    .t-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 36px 24px 10px;
+    }
+    .t-head-left { display: flex; align-items: center; gap: 10px; }
+    .t-name {
+      font-size: 22px; font-weight: 700; color: #e5e5e5;
+      letter-spacing: -.4px;
+    }
+    .t-badge {
+      font-size: 10px; font-weight: 800; letter-spacing: .7px;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+      align-self: center; line-height: 1;
+    }
+    .ts-0 .t-badge { background: rgba(74,222,128,.12);  color: var(--c0); border: 1px solid rgba(74,222,128,.25); }
+    .ts-1 .t-badge { background: rgba(96,165,250,.12);  color: var(--c1); border: 1px solid rgba(96,165,250,.25); }
+    .ts-3 .t-badge { background: rgba(251,146,60,.12);  color: var(--c3); border: 1px solid rgba(251,146,60,.25); }
+    .ts-4 .t-badge { background: rgba(161,161,170,.12); color: var(--c4); border: 1px solid rgba(161,161,170,.25); }
+    .t-cnt { font-size: 13px; color: var(--muted); }
+    .t-head-right { display: flex; align-items: center; gap: 10px; }
+    .t-selall {
+      display: none;
+      background: none; border: 1px solid rgba(255,255,255,.2);
+      color: rgba(255,255,255,.6); font-size: 12px; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px; cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    body.sel-mode .t-selall { display: block; }
+    .t-selall:hover { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.4); }
+    .t-divider { display: none; }
+
+    /* ── Rail wrapper ── */
+    .rail-wrap { position: relative; margin-bottom: 2px; }
+    .rail-label {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 24px 6px; font-size: 12px; color: var(--muted);
+    }
+    .rl-badge {
+      font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;
+    }
+    .rl-video { background: rgba(96,165,250,.15);  color: #60a5fa; border: 1px solid rgba(96,165,250,.3); }
+    .rl-short { background: rgba(251,146,60,.15);  color: #fb923c; border: 1px solid rgba(251,146,60,.3); }
+    .rl-ch3 { background: var(--c3-bg); color: var(--c3); border: 1px solid var(--c3-bd); }
+
+    /* ── Rail (horizontal scroll) ── */
+    .rail {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 12px;
+      padding: 4px 24px 16px;
+      overflow-x: auto;
+      overflow-y: visible;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      -webkit-overflow-scrolling: touch;
+    }
+    .rail::-webkit-scrollbar { height: 4px; }
+    .rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Arrow buttons ── */
+    .arr {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer; z-index: 5;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,.4);
+      transition: background .15s, opacity .2s;
+    }
+    .arr:hover { background: #ef4444; border-color: #ef4444; color: #fff; }
+    .arr.hidden { opacity: 0; pointer-events: none; }
+    .arr-l { left: 4px; }
+    .arr-r { right: 4px; }
+    .arr svg { width: 16px; height: 16px; }
+
+    /* ── Cards ── */
+    .card {
+      flex: 0 0 auto;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      text-decoration: none; color: inherit;
+      transition: transform .2s, box-shadow .2s, border-color .15s;
+      position: relative;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-drag: none;
+      touch-action: manipulation;
+    }
+    .card img, .card .thumb-err {
+      -webkit-touch-callout: none;
+      pointer-events: none;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+    .card.selected { border-color: #e50914; box-shadow: 0 0 0 2px #e50914; transform: translateY(-4px); }
+
+    /* 선택 원형 버튼 */
+    .select-btn {
+      position: absolute; top: 8px; left: 8px; z-index: 4;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.75);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: opacity .15s, background .15s, border-color .15s;
+      opacity: 0;
+    }
+    .card:hover .select-btn { opacity: 1; }
+    .card.selected .select-btn { opacity: 1; background: #e50914; border-color: #e50914; }
+    body.sel-mode .select-btn { opacity: .7; }
+    body.sel-mode .card.selected .select-btn { opacity: 1; }
+    .select-check { opacity: 0; transition: opacity .1s; }
+    .card.selected .select-check { opacity: 1; }
+
+    body.sel-mode .card { cursor: default; }
+
+    @media (hover: none) {
+      .card:hover { transform: none; box-shadow: none; }
+      .card.selected { transform: none; }
+      .card:hover .thumb img { transform: none; }
+      .card:hover .play-wrap { background: none; }
+      .card:hover .play-btn { opacity: 0; transform: scale(.8); }
+      .select-btn { display: none; }
+      body.sel-mode .select-btn { display: flex; opacity: .7; }
+      body.sel-mode .card.selected .select-btn { opacity: 1; }
+    }
+
+    /* 재생목록 하단 바 */
+    #playlist-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 3000;
+      background: rgba(18,18,18,.97); border-top: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 24px;
+      transform: translateY(100%); transition: transform .3s ease;
+    }
+    #playlist-bar.visible { transform: translateY(0); }
+    #playlist-count {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 2px; flex-shrink: 0;
+    }
+    #pl-count-num {
+      font-size: 30px; font-weight: 800; color: #e50914; line-height: 1;
+      letter-spacing: -1px; font-variant-numeric: tabular-nums;
+    }
+    #pl-count-label {
+      font-size: 10px; font-weight: 500; letter-spacing: .5px;
+      text-transform: uppercase; color: rgba(255,255,255,.45); line-height: 1;
+    }
+    #pl-sec-cnt {
+      display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
+      font-size: 11px; font-weight: 600; line-height: 1; margin-top: 3px;
+    }
+    .pl-sec-item { white-space: nowrap; }
+    .pl-sep { color: rgba(255,255,255,.2); font-weight: 400; }
+    @keyframes pl-pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+    #pl-count-num.pop { animation: pl-pop .22s ease-out; }
+    .pl-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 18px; border-radius: 6px; cursor: pointer;
+      font-size: 14px; font-weight: 600; border: none; transition: background .15s;
+      white-space: nowrap;
+    }
+    #pl-clear { background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); }
+    #pl-clear:hover { background: rgba(255,255,255,.2); }
+    #pl-play  { background: #e50914; color: #fff; }
+    #pl-play:hover { background: #f40612; }
+    @media (max-width: 640px) {
+      #playlist-bar { padding: 12px 16px; gap: 8px; }
+      #pl-count-num { font-size: 24px; }
+      #pl-count-label { font-size: 9px; }
+      .pl-btn { padding: 8px 14px; font-size: 13px; gap: 6px; }
+    }
+
+    .card-v { width: var(--v-w); }
+    .card-v .thumb { aspect-ratio: 16/9; }
+    .card-s { width: var(--s-w); }
+    .card-s .thumb { height: 240px; }
+
+    .thumb {
+      position: relative; background: var(--surface2); overflow: hidden;
+    }
+    .thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform .3s;
+    }
+    .card:hover .thumb img { transform: scale(1.05); }
+    .thumb-err {
+      position: absolute; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: var(--surface2); color: var(--border); font-size: 26px;
+    }
+
+    .badge {
+      position: absolute; font-size: 10px; font-weight: 800;
+      padding: 2px 6px; border-radius: 4px; letter-spacing: .3px;
+    }
+    .badge-new  { top: 6px; right: 6px;   background: #2563eb; color: #fff; }
+    .badge-live { top: 6px; left: 6px;   background: #dc2626; color: #fff; }
+    .badge-when { bottom: 6px; left: 6px; background: rgba(0,0,0,.78); color: #fff; border-radius: 4px; }
+
+    .play-wrap {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    .card:hover .play-wrap { background: rgba(0,0,0,.25); }
+    .play-btn {
+      width: 38px; height: 38px; background: rgba(255,255,255,.88); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(.8); transition: all .2s;
+    }
+    .play-btn svg { width: 15px; height: 15px; fill: #111; margin-left: 3px; }
+    .card:hover .play-btn { opacity: 1; transform: scale(1); }
+
+    .card-body { padding: 8px 10px 10px; }
+    .card-title {
+      font-size: 12.5px; font-weight: 600; line-height: 1.4; color: var(--text);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; margin-bottom: 5px;
+    }
+    .card-views { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .card-ch {
+      font-size: 10px; font-weight: 700; letter-spacing: .3px;
+      padding: 1px 6px; border-radius: 3px; line-height: 1.6;
+    }
+
+    /* ── Load-more ── */
+    .load-more-card {
+      flex: 0 0 auto; width: var(--v-w);
+      background: var(--surface2); border: 1px dashed var(--border);
+      border-radius: 10px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer; color: var(--muted); text-decoration: none;
+      transition: border-color .2s, color .2s;
+      min-height: 160px;
+    }
+    .load-more-card.short-size { width: var(--s-w); min-height: 240px; }
+    .load-more-card:hover { border-color: #ef4444; color: #ef4444; }
+    .load-more-card svg { width: 28px; height: 28px; }
+    .load-more-card span { font-size: 12px; font-weight: 600; }
+
+    /* ── Video detail modal ── */
+    #vd-overlay {
+      position: fixed; inset: 0; z-index: 8500;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: fadeIn .2s ease;
+    }
+    @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+    #vd-modal {
+      background: #181818; border-radius: 10px;
+      width: 100%; max-width: 860px;
+      max-height: 90vh; overflow-y: auto;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,.8);
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp { from { transform:translateY(30px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+    #vd-close {
+      position: absolute; top: 14px; right: 14px; z-index: 2;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #181818; border: none; color: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    #vd-close:hover { background: #333; }
+    #vd-video-wrap {
+      position: relative; width: 100%; aspect-ratio: 16/9;
+      background: #000; border-radius: 10px 10px 0 0; overflow: hidden;
+    }
+    #vd-video-wrap iframe {
+      position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+    }
+    #vd-video-grad {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 35%;
+      background: linear-gradient(to top, #181818 0%, transparent 100%);
+      pointer-events: none;
+    }
+    #vd-replay {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      padding: 10px 24px; border-radius: 4px; z-index: 2;
+      background: rgba(0,0,0,.65); border: 2px solid rgba(255,255,255,.55);
+      color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background .2s; white-space: nowrap;
+    }
+    #vd-replay:hover { background: rgba(255,255,255,.18); }
+    #vd-body { padding: 20px 28px 28px; }
+    #vd-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    #vd-ch {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,.5);
+    }
+    #vd-title {
+      font-size: clamp(16px, 2.2vw, 24px); font-weight: 800;
+      color: #fff; line-height: 1.3; margin-bottom: 18px;
+    }
+    #vd-actions { display: flex; gap: 10px; }
+    #vd-yt-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 4px;
+      background: #e50914; color: #fff;
+      font-size: 14px; font-weight: 700;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: background .2s;
+    }
+    #vd-yt-btn:hover { background: #c0000f; }
+    #vd-unmute {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 4px;
+      background: rgba(109,109,110,.7); color: #fff;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      border: none; transition: background .2s;
+    }
+    #vd-unmute:hover { background: rgba(109,109,110,.5); }
+    #vd-unmute.on svg.ico-mute { display: none; }
+    #vd-unmute:not(.on) svg.ico-sound { display: none; }
+    @media (max-width: 640px) {
+      .vd-btn-text { white-space: nowrap; }
+      #vd-unmute, #vd-yt-btn { padding: 10px 14px; font-size: 13px; }
+    }
+
+    /* ── YouTube 채널 팝업 ── */
+    #yt-popup-overlay {
+      position: fixed; inset: 0; z-index: 8000;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #yt-popup {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 32px 28px 24px;
+      max-width: 380px; width: 90%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    #yt-popup .yt-popup-icon { font-size: 36px; margin-bottom: 14px; }
+    #yt-popup p {
+      color: var(--text); font-size: 14px; line-height: 1.7;
+      margin: 0 0 24px;
+    }
+    .yt-popup-btns { display: flex; flex-direction: column; gap: 10px; }
+    .yt-popup-btns a {
+      display: block; padding: 11px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 700; text-decoration: none;
+      transition: background .2s, opacity .2s;
+    }
+    .yt-popup-btns a.btn-ch { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .yt-popup-btns a.btn-ch:hover { opacity: .85; }
+    .yt-popup-btns button {
+      padding: 10px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      background: var(--surface2); color: var(--muted);
+      border: 1px solid var(--border); transition: background .2s, color .2s;
+    }
+    .yt-popup-btns button:hover { background: var(--border); color: var(--text); }
+
+    /* ── States ── */
+    #loading {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 100px 24px; gap: 16px;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--spinner-track); border-top-color: #ef4444;
+      border-radius: 50%; animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { color: var(--muted); font-size: 14px; }
+
+    #err-msg {
+      display: none; margin: 24px; padding: 20px;
+      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25);
+      border-radius: 10px; color: var(--muted); font-size: 13px;
+    }
+    #content { display: none; }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      #hero { height: 60vh; min-height: 340px; }
+      #hero-info { max-width: 60%; }
+    }
+    @media (max-width: 640px) {
+      :root { --v-w: 210px; --s-w: 128px; }
+      #hero { height: 60vh; min-height: 300px; }
+      #hero-info { bottom: 16%; left: 4%; max-width: 82%; }
+      #hero-title { margin-bottom: 14px; }
+      .h-btn { font-size: 13px; padding: 8px 18px; }
+      #hero-mute, #hero-replay { bottom: 16%; }
+      .filter-bar, .rail { padding-left: 14px; padding-right: 14px; }
+      .t-head { padding: 16px 14px 8px; }
+      .rail-label { padding-left: 14px; }
+      .card-s .thumb { height: 200px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Netflix Nav ── -->
+<nav id="nf-nav">
+  <div class="nf-logo">
+    <span class="nf-logo-sub" style="color:#e50914">Right News</span>
+    <span class="nf-logo-main">뉴스 모아보기</span>
+  </div>
+  <div class="nf-nav-right">
+    <span class="upd-time" id="upd-time"></span>
+    <button class="btn-refresh" onclick="clearSelection();loadVideos()" title="새로고침">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/>
+        <polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section id="hero">
+  <div id="hero-thumb"></div>
+  <div id="hero-gradient"></div>
+  <div id="hero-info">
+    <div id="hero-ch-label"></div>
+    <h1 id="hero-title"></h1>
+    <div id="hero-btns">
+      <a id="hero-play-btn" class="h-btn h-btn-play" href="#" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        재생
+      </a>
+      <button class="h-btn h-btn-more" onclick="showVideoModal(window._heroVideo)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        자세히 보기
+      </button>
+    </div>
+  </div>
+  <button id="hero-mute" onclick="heroToggleMute()" title="음소거 해제">
+    <svg id="hero-ico-mute" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.18l2.45 2.45c.05-.2.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06A8.99 8.99 0 0 0 17.73 19l1.98 2L21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+    </svg>
+    <svg id="hero-ico-sound" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.23v2.06A6.5 6.5 0 0 1 14 20.71v2.06c3.88-.99 6.71-4.53 6.71-8.77S17.88 4.22 14 3.23z"/>
+    </svg>
+  </button>
+  <button id="hero-replay" onclick="heroReplay()">↺ 다시 보기</button>
+</section>
+
+<!-- ── Sub info + Filter ── -->
+<div id="content">
+  <div class="sub-info">
+    <span id="sub-text">불러오는 중…</span>
+  </div>
+  <div class="filter-bar" id="filter-bar">
+    <div class="chip c-all active" onclick="setFilter(this,'all')">📺 전체 <span class="cnt" id="cnt-all">0</span></div>
+    <!-- 채널 칩: JS로 동적 추가 -->
+  </div>
+  <main id="main-content"></main>
+</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>영상 데이터 불러오는 중…</p>
+</div>
+<div id="err-msg">영상 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>
+
+<script>
+history.scrollRestoration = 'manual';
+
+// ── 채널 설정 (스크래핑용) ─────────────────────────────────
+const CHANNELS = [
+  {
+    id:       '1waynews-jhg',
+    label:    '전한길뉴스',
+    videosUrl: 'https://www.youtube.com/@1waynews-jhg/videos',
+    shortsUrl: 'https://www.youtube.com/@1waynews-jhg/shorts',
+    filterId: 'jeonhangil',
+    ytUrl:    'https://www.youtube.com/@1waynews-jhg',
+  },
+  {
+    id:       'hangilog',
+    label:    '한기로그',
+    videosUrl: 'https://www.youtube.com/@hangilog/videos',
+    shortsUrl: 'https://www.youtube.com/@hangilog/shorts',
+    filterId: 'jeonhangil',
+    ytUrl:    'https://www.youtube.com/@hangilog',
+  },
+  {
+    id:       'jjinkwak',
+    label:    '꽉TV',
+    videosUrl: 'https://www.youtube.com/@jjinkwak/videos',
+    shortsUrl: 'https://www.youtube.com/@jjinkwak/shorts',
+    filterId: 'jjinkwak',
+    ytUrl:    'https://www.youtube.com/@jjinkwak',
+  },
+  {
+    id:       'sensorstudio',
+    label:    '센서스튜디오',
+    videosUrl: 'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/videos',
+    shortsUrl: 'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/shorts',
+    filterId: 'sensorstudio',
+    ytUrl:    'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624',
+  },
+];
+
+// ── 필터 설정 (UI 표시용) ─────────────────────────────────
+const FILTERS = [
+  { id: 'jeonhangil',   label: '전한길뉴스', cls: 'c-ch0', rlCls: 'rl-ch0' },
+  { id: 'jjinkwak',     label: '꽉TV',        cls: 'c-ch1', rlCls: 'rl-ch1' },
+  { id: 'sensorstudio', label: '센서스튜디오', cls: 'c-ch2', rlCls: 'rl-ch2' },
+];
+
+const PROXIES = [
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
+
+const CATS = [
+  { id:0, label:'오늘',                    badge:'TODAY',     cls:'ts-0' },
+  { id:1, label:'어제',                    badge:'YESTERDAY', cls:'ts-1' },
+  { id:2, label:'이번 주',                 badge:'THIS WEEK', cls:'ts-3' },
+  { id:3, label:'일주일 이상 지난 영상들',  badge:'OLDER',    cls:'ts-4' },
+];
+
+// 지난주 이상: 처음 3개만, 이후 lazy load
+const LAZY_CAT   = 3;
+const LAZY_INIT  = 3;
+const LAZY_BATCH = 7;
+
+// lazy store: { [channelId]: [...videos] }
+let lazyStore  = {};
+let lazyOffset = {};
+
+// ── 채널 칩 동적 생성 ──────────────────────────────────────
+function buildChannelChips() {
+  const bar = document.getElementById('filter-bar');
+  FILTERS.forEach(f => {
+    const div = document.createElement('div');
+    div.className = `chip ${f.cls}`;
+    div.id = `chip-${f.id}`;
+    div.onclick = () => setFilter(div, f.id);
+    div.innerHTML = `${f.label} <span class="cnt" id="cnt-${f.id}">0</span>`;
+    bar.appendChild(div);
+  });
+}
+buildChannelChips();
+
+// ── 유틸 ─────────────────────────────────────────────────
+function isLiveVideo(v) {
+  return v.type === 'live' || /\[?LIVE\]?|라이브/i.test(v.title);
+}
+
+function pickHeroVideo(videos) {
+  const candidates = videos.filter(v => (v.type || 'video') !== 'short');
+  const pool_src = candidates.length ? candidates : videos;
+  const now = Date.now();
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+  const currentLive = pool_src.find(v =>
+    isLiveVideo(v) && (now - new Date(v.publishedAt).getTime()) < 4 * 3600_000
+  );
+  if (currentLive) return currentLive;
+
+  const todayVids     = pool_src.filter(v => new Date(v.publishedAt) >= todayStart);
+  const todayLive     = todayVids.find(v => isLiveVideo(v));
+  const mostViewed    = [...pool_src].sort((a, b) => (b.views||0) - (a.views||0))[0];
+  const mostRecent    = pool_src[0];
+  const todayTopView  = [...todayVids].sort((a, b) => (b.views||0) - (a.views||0))[0];
+
+  const pool = [...new Set([todayLive, mostViewed, mostRecent, todayTopView].filter(Boolean))];
+  return pool[Math.floor(Math.random() * pool.length)] || pool_src[0];
+}
+
+function getBucket(pub) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const ago = n => new Date(+today - n * 86400_000);
+  if (pub >= today)  return 0;
+  if (pub >= ago(1)) return 1;
+  if (pub >= ago(7)) return 2;
+  return 3;
+}
+
+// ── Load ─────────────────────────────────────────────────
+async function loadVideos() {
+  show('loading', true);
+  show('content', false);
+  show('err-msg', false);
+
+  const fromJson = await fetchDataJson();
+  if (fromJson?.videos?.length) {
+    show('loading', false);
+    render(fromJson.videos);
+    setTxt('sub-text', `영상 ${fromJson.videos.length}개`);
+    setTxt('upd-time', fmtTime(new Date()));
+    return;
+  }
+
+  // 모든 채널 videos + shorts 병렬 스크래핑
+  const tasks = CHANNELS.flatMap(ch => [
+    scrapeChannelUrl(ch, ch.videosUrl, 'video'),
+    scrapeChannelUrl(ch, ch.shortsUrl, 'short'),
+  ]);
+  const results = await Promise.allSettled(tasks);
+  const allVideos = results
+    .filter(r => r.status === 'fulfilled' && r.value?.length)
+    .flatMap(r => r.value)
+    .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+
+  show('loading', false);
+  if (allVideos.length) {
+    render(allVideos);
+    setTxt('sub-text', `영상 ${allVideos.length}개`);
+    setTxt('upd-time', fmtTime(new Date()));
+  } else {
+    show('err-msg', true);
+  }
+}
+
+async function fetchDataJson() {
+  try {
+    const r = await fetch('./data.json', { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (!d.videos?.length) return null;
+    d.videos = d.videos.map(v => ({ ...v, publishedAt: new Date(v.publishedAt) }));
+    return d;
+  } catch { return null; }
+}
+
+async function scrapeChannelUrl(ch, url, forcedType) {
+  const html = await raceProxies(url);
+  if (!html) return null;
+  try {
+    const idx = html.indexOf('var ytInitialData = ');
+    if (idx < 0) return null;
+    const s = html.indexOf('{', idx);
+    let d = 0, i = s;
+    for (; i < html.length; i++) {
+      if (html[i] === '{') d++;
+      else if (html[i] === '}') { d--; if (!d) break; }
+    }
+    const data = JSON.parse(html.slice(s, i + 1));
+    const filter = FILTERS.find(f => f.id === ch.filterId);
+    return parseYtData(data, ch.filterId, filter?.label || ch.label, forcedType);
+  } catch { return null; }
+}
+
+async function raceProxies(url) {
+  return new Promise(res => {
+    let done = false, pending = PROXIES.length;
+    PROXIES.forEach(mk => {
+      fetch(mk(url), { signal: AbortSignal.timeout(14000) })
+        .then(async r => {
+          const t = await r.text();
+          if (!t.includes('ytInitialData')) throw 0;
+          if (!done) { done = true; res(t); }
+        })
+        .catch(() => { if (--pending === 0 && !done) res(null); });
+    });
+  });
+}
+
+function parseYtData(data, channelId, channelLabel, forcedType) {
+  const tabs = data?.contents?.twoColumnBrowseResultsRenderer?.tabs ?? [];
+  let items = null;
+  for (const tab of tabs) {
+    const c = tab.tabRenderer?.content;
+    if (!c) continue;
+    const g = c.richGridRenderer?.contents
+      ?? c.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.gridRenderer?.items;
+    if (g?.length) { items = g; break; }
+  }
+  if (!items) return null;
+  const now = new Date();
+  return items.map(item => {
+    const vr = item.richItemRenderer?.content?.videoRenderer ?? item.gridVideoRenderer ?? item.videoRenderer;
+    if (!vr?.videoId) return null;
+    const id = vr.videoId;
+    const tt = vr.publishedTimeText?.simpleText ?? '';
+    const isLiveNow = vr.badges?.some(b =>
+      b.metadataBadgeRenderer?.style === 'BADGE_STYLE_TYPE_LIVE_NOW'
+    ) || vr.thumbnailOverlays?.some(o =>
+      o.thumbnailOverlayTimeStatusRenderer?.style === 'LIVE'
+    );
+    const type = forcedType === 'short' ? 'short'
+               : isLiveNow             ? 'live'
+               : 'video';
+    return {
+      id,
+      type,
+      title: vr.title?.runs?.[0]?.text ?? vr.title?.simpleText ?? '',
+      thumb: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+      publishedAt: parseRel(tt, now), timeText: tt,
+      views: parseViews(vr.viewCountText?.simpleText ?? ''),
+      url: type === 'short'
+        ? `https://www.youtube.com/shorts/${id}`
+        : `https://www.youtube.com/watch?v=${id}`,
+      channel: channelId,
+      channelLabel: channelLabel,
+    };
+  }).filter(Boolean);
+}
+
+// ── Render ────────────────────────────────────────────────
+// 타입 레일 정의: short → Shorts, video/live → 동영상
+const TYPES = [
+  { id: 'short', label: 'Shorts',  rlCls: 'rl-short', isShort: true  },
+  { id: 'video', label: '동영상',   rlCls: 'rl-video', isShort: false },
+];
+
+function render(videos) {
+  window._heroVideo = pickHeroVideo(videos);
+  initHero(window._heroVideo);
+
+  // 타입별 시간 버킷: buckets[catIdx][typeId] = []
+  const buckets = CATS.map(() => ({ short: [], video: [] }));
+
+  videos.forEach(v => {
+    const b = getBucket(v.publishedAt instanceof Date ? v.publishedAt : new Date(v.publishedAt));
+    const typeId = v.type === 'short' ? 'short' : 'video';
+    buckets[b][typeId].push(v);
+  });
+
+  // 필터별 총 카운트
+  FILTERS.forEach(f => {
+    setTxt(`cnt-${f.id}`, videos.filter(v => v.channel === f.id).length);
+  });
+  setTxt('cnt-all', videos.length);
+
+  // lazy store: 타입별로
+  lazyStore  = { short: buckets[LAZY_CAT].short, video: buckets[LAZY_CAT].video };
+  lazyOffset = { short: 0, video: 0 };
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = '';
+
+  CATS.forEach((cat, i) => {
+    const bucket = buckets[i];
+    if (!bucket.short.length && !bucket.video.length) return;
+
+    const sec = document.createElement('div');
+    sec.className = `t-section ${cat.cls}`;
+    sec.id = `sec-${i}`;
+
+    const head = document.createElement('div');
+    head.className = 't-head';
+    head.innerHTML = `
+      <div class="t-head-left">
+        <span class="t-name">${cat.label}</span>
+        <span class="t-badge">${cat.badge}</span>
+      </div>
+      <div class="t-head-right">
+        <button class="t-selall" onclick="selectAllInSection('sec-${i}')">전체선택</button>
+      </div>`;
+    sec.appendChild(head);
+
+    if (i === LAZY_CAT) {
+      TYPES.forEach(t => {
+        const store = lazyStore[t.id];
+        if (!store?.length) return;
+        sec.appendChild(buildRail(store.slice(0, LAZY_INIT), t, i, true));
+        lazyOffset[t.id] = Math.min(LAZY_INIT, store.length);
+      });
+    } else {
+      TYPES.forEach(t => {
+        const vids = bucket[t.id];
+        if (!vids?.length) return;
+        sec.appendChild(buildRail(vids, t, i, false));
+      });
+    }
+
+    const div = document.createElement('div');
+    div.className = 't-divider';
+    sec.appendChild(div);
+    main.appendChild(sec);
+  });
+
+  show('content', true);
+  setFilter(document.querySelector('.chip.c-all'), 'all');
+}
+
+// ── Build Rail ────────────────────────────────────────────
+function buildRail(items, t, catIdx, isLazy) {
+  const wrap = document.createElement('div');
+  wrap.className = 'rail-wrap';
+  wrap.dataset.type = t.id;
+
+  const railId = `rail-${t.id}-${catIdx}`;
+
+  const labelDiv = document.createElement('div');
+  labelDiv.className = 'rail-label';
+  labelDiv.innerHTML = `<span class="rl-badge ${t.rlCls}">${t.label}</span>`;
+  wrap.appendChild(labelDiv);
+
+  const arrL = document.createElement('button');
+  arrL.className = 'arr arr-l hidden';
+  arrL.setAttribute('aria-label', '이전');
+  arrL.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>`;
+  wrap.appendChild(arrL);
+
+  const rail = document.createElement('div');
+  rail.className = 'rail';
+  rail.id = railId;
+  items.forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
+  wrap.appendChild(rail);
+
+  const arrR = document.createElement('button');
+  arrR.className = 'arr arr-r';
+  arrR.setAttribute('aria-label', '다음');
+  arrR.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>`;
+  wrap.appendChild(arrR);
+
+  const cardW = t.isShort
+    ? (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--s-w')) || 145)
+    : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--v-w')) || 258);
+  arrL.onclick = () => rail.scrollTo({ left: Math.max(0, rail.scrollLeft - (cardW + 12) * 3), behavior: 'smooth' });
+  arrR.onclick = () => rail.scrollTo({ left: Math.min(rail.scrollWidth - rail.clientWidth, rail.scrollLeft + (cardW + 12) * 3), behavior: 'smooth' });
+
+  const updateArrows = () => {
+    const atStart = rail.scrollLeft <= 2;
+    const atEnd   = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+    arrL.classList.toggle('hidden', atStart);
+    arrR.classList.toggle('hidden', atEnd);
+    if (isLazy && atEnd) loadMoreLazy(t, rail, arrR);
+  };
+
+  rail.addEventListener('scroll', updateArrows, { passive: true });
+  requestAnimationFrame(() => updateArrows());
+
+  return wrap;
+}
+
+// ── Lazy Load ────────────────────────────────────────────
+function loadMoreLazy(t, rail, arrR) {
+  const store  = lazyStore[t.id];
+  const offset = lazyOffset[t.id];
+
+  if (offset >= store.length) {
+    if (!rail.querySelector('.fetch-more-card'))
+      addFetchMoreCard(rail);
+    return;
+  }
+
+  const batch = store.slice(offset, offset + LAZY_BATCH);
+  if (!batch.length) return;
+
+  rail.querySelectorAll('.load-more-card, .fetch-more-card').forEach(el => el.remove());
+  batch.forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
+  lazyOffset[t.id] += batch.length;
+
+  if (lazyOffset[t.id] < store.length) {
+    addLoadMoreCard(rail, t, arrR);
+  } else {
+    addFetchMoreCard(rail);
+  }
+
+  requestAnimationFrame(() => {
+    const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+    arrR.classList.toggle('hidden', atEnd);
+  });
+}
+
+function addLoadMoreCard(rail, t, arrR) {
+  const remaining = lazyStore[t.id].length - lazyOffset[t.id];
+  const card = document.createElement('div');
+  card.className = 'load-more-card';
+  card.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="8 12 12 16 16 12"/>
+      <line x1="12" y1="8" x2="12" y2="16"/>
+    </svg>
+    <span>+${remaining}개 더 보기</span>`;
+  card.onclick = () => { card.remove(); loadMoreLazy(f, rail, arrR); };
+  rail.appendChild(card);
+}
+
+function addFetchMoreCard(rail) {
+  if (rail.querySelector('.fetch-more-card')) return;
+  const card = document.createElement('div');
+  card.className = 'load-more-card fetch-more-card';
+  card.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    <span>더 많은 영상 보러가기</span>`;
+  card.onclick = () => showYtPopup();
+  rail.appendChild(card);
+}
+
+// ── Card HTML ────────────────────────────────────────────
+function cardHTML(v) {
+  const isLive  = isLiveVideo(v);
+  const isShort = !isLive && v.type === 'short';
+  const isNew   = !isLive && (Date.now() - new Date(v.publishedAt)) < 6 * 3600_000;
+  const when    = relDate(new Date(v.publishedAt));
+  const views   = v.views != null ? `👁 ${fmtN(v.views)}` : '';
+
+  // 채널 뱃지: 필터 색상 적용
+  const fi = FILTERS.findIndex(f => f.id === v.channel);
+  const chBg  = fi >= 0 ? `var(--c${fi}-bg)` : 'rgba(255,255,255,.08)';
+  const chClr = fi >= 0 ? `var(--c${fi})`    : 'var(--muted)';
+  const chLabel = v.channelLabel || (fi >= 0 ? FILTERS[fi].label : '');
+
+  return `
+<div class="card card-${isShort ? 's' : 'v'}" data-href="${esc(v.url)}" data-vid="${esc(v.id)}" data-ch="${esc(v.channel||'')}">
+  <div class="select-btn" onclick="toggleSelect('${esc(v.id)}',event)" title="선택">
+    <svg class="select-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+  </div>
+  <div class="thumb">
+    <img src="${esc(v.thumb)}" alt="${esc(v.title)}" loading="lazy"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+    <div class="thumb-err">▶</div>
+    ${isLive ? '<span class="badge badge-live">🔴 LIVE</span>' : ''}
+    ${isNew  ? '<span class="badge badge-new">NEW</span>' : ''}
+    <span class="badge badge-when">${when}</span>
+    <div class="play-wrap">
+      <div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="card-title">${esc(v.title)}</div>
+    <div class="card-views">
+      ${chLabel ? `<span class="card-ch" style="background:${chBg};color:${chClr}">${esc(chLabel)}</span>` : ''}
+      ${views}
+    </div>
+  </div>
+</div>`;
+}
+
+// ── Filter ───────────────────────────────────────────────
+function setFilter(el, filterId) {
+  clearSelection();
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  // 채널 필터: filterId가 채널 id면 해당 채널 영상만 보임 (rail-wrap은 타입별이므로 카드 기준 필터)
+  document.querySelectorAll('.rail-wrap').forEach(wrap => {
+    if (filterId === 'all') {
+      wrap.style.display = '';
+      // 모든 카드 표시
+      wrap.querySelectorAll('.card[data-vid]').forEach(c => c.style.display = '');
+    } else {
+      // 해당 채널 카드만 표시, 없으면 rail-wrap 숨김
+      let visible = 0;
+      wrap.querySelectorAll('.card[data-vid]').forEach(c => {
+        const show = c.dataset.ch === filterId;
+        c.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      wrap.style.display = visible > 0 ? '' : 'none';
+    }
+  });
+
+  document.querySelectorAll('.t-section').forEach(sec => {
+    const visibleRails = [...sec.querySelectorAll('.rail-wrap')].filter(w => w.style.display !== 'none');
+    sec.style.display  = visibleRails.length ? '' : 'none';
+  });
+}
+
+// ── Helpers ──────────────────────────────────────────────
+function show(id, on) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = on ? (id === 'loading' ? 'flex' : 'block') : 'none';
+}
+function setTxt(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+function fmtTime(d) {
+  return `업데이트: ${d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;
+}
+
+let modalMuted = true;
+let modalTimer = null;
+
+function showVideoModal(v) {
+  if (!v || document.getElementById('vd-overlay')) return;
+  const elapsed = heroStartedAt ? Math.floor((Date.now() - heroStartedAt) / 1000) : 0;
+  const start   = Math.max(0, elapsed);
+
+  const heroWasUnmuted = !heroMuted;
+  setHeroMuted(true);
+  modalMuted = !heroWasUnmuted;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'vd-overlay';
+  overlay.innerHTML = `
+    <div id="vd-modal">
+      <button id="vd-close" onclick="closeVideoModal()" aria-label="닫기">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div id="vd-video-wrap">
+        <iframe id="vd-iframe"
+          src="https://www.youtube-nocookie.com/embed/${esc(v.id)}?autoplay=1&mute=1&start=${start}&controls=0&disablekb=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&playsinline=1"
+          style="pointer-events:none"
+          allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div id="vd-video-grad"></div>
+      </div>
+      <div id="vd-body">
+        <div id="vd-meta"><span id="vd-ch">${esc(v.channelLabel || '')}</span></div>
+        <div id="vd-title">${esc(v.title || '')}</div>
+        <div id="vd-actions">
+          <button id="vd-unmute" onclick="vdToggleMute()">
+            <svg class="ico-mute" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.18l2.45 2.45c.05-.2.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06A8.99 8.99 0 0 0 17.73 19l1.98 2L21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+            </svg>
+            <svg class="ico-sound" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.23v2.06A6.5 6.5 0 0 1 14 20.71v2.06c3.88-.99 6.71-4.53 6.71-8.77S17.88 4.22 14 3.23z"/>
+            </svg>
+            <span class="vd-btn-text">소리 켜기</span>
+          </button>
+          <a id="vd-yt-btn" href="${esc(v.url || '#')}" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            <span class="vd-btn-text">YouTube에서 보기</span>
+          </a>
+        </div>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeVideoModal(); });
+  document.body.appendChild(overlay);
+  setTimeout(() => applyModalMute(modalMuted), 800);
+
+  clearTimeout(modalTimer);
+  const remaining = Math.max(0, 60 - start);
+  if (remaining <= 0) {
+    stopModalVideo();
+  } else {
+    modalTimer = setTimeout(stopModalVideo, remaining * 1000);
+  }
+}
+
+function stopModalVideo() {
+  clearTimeout(modalTimer);
+  const wrap = document.getElementById('vd-video-wrap');
+  if (!wrap) return;
+  document.getElementById('vd-iframe')?.remove();
+  const v = window._heroVideo;
+  if (v) {
+    wrap.style.backgroundImage    = `url('${v.thumb}')`;
+    wrap.style.backgroundSize     = 'cover';
+    wrap.style.backgroundPosition = 'center';
+  }
+  const unmuteBtn = document.getElementById('vd-unmute');
+  if (unmuteBtn) unmuteBtn.style.display = 'none';
+  if (!document.getElementById('vd-replay')) {
+    const btn = document.createElement('button');
+    btn.id = 'vd-replay';
+    btn.textContent = '↺ 다시 보기';
+    btn.onclick = modalReplay;
+    wrap.appendChild(btn);
+  }
+}
+
+function modalReplay() {
+  const v = window._heroVideo;
+  if (!v) return;
+  const wrap = document.getElementById('vd-video-wrap');
+  if (!wrap) return;
+  document.getElementById('vd-replay')?.remove();
+  wrap.style.backgroundImage = '';
+  const iframe = document.createElement('iframe');
+  iframe.id = 'vd-iframe';
+  iframe.src = `https://www.youtube-nocookie.com/embed/${esc(v.id)}?autoplay=1&mute=1&controls=0&disablekb=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&playsinline=1`;
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;pointer-events:none;';
+  iframe.allow = 'autoplay; encrypted-media';
+  iframe.allowFullscreen = true;
+  wrap.insertBefore(iframe, wrap.firstChild);
+  const unmuteBtn = document.getElementById('vd-unmute');
+  if (unmuteBtn) unmuteBtn.style.display = '';
+  modalMuted = true;
+  applyModalMute(true);
+  clearTimeout(modalTimer);
+  modalTimer = setTimeout(stopModalVideo, 60000);
+}
+
+function applyModalMute(muted) {
+  const cmd = muted ? 'mute' : 'unMute';
+  document.getElementById('vd-iframe')
+    ?.contentWindow?.postMessage(JSON.stringify({ event:'command', func:cmd, args:[] }), '*');
+  const btn = document.getElementById('vd-unmute');
+  if (btn) {
+    btn.classList.toggle('on', !muted);
+    btn.querySelector('.vd-btn-text').textContent = muted ? '소리 켜기' : '소리 끄기';
+  }
+}
+
+function vdToggleMute() {
+  modalMuted = !modalMuted;
+  applyModalMute(modalMuted);
+}
+
+function closeVideoModal() {
+  clearTimeout(modalTimer);
+  const targetMuted = modalMuted;
+  document.getElementById('vd-overlay')?.remove();
+  if (!document.getElementById('hero-iframe') && window._heroVideo) {
+    initHero(window._heroVideo);
+    setTimeout(() => setHeroMuted(targetMuted), 800);
+  } else {
+    setHeroMuted(targetMuted);
+  }
+}
+
+function showYtPopup() {
+  if (document.getElementById('yt-popup-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'yt-popup-overlay';
+  const links = CHANNELS.map(ch =>
+    `<a class="btn-ch" href="${esc(ch.ytUrl)}" target="_blank" rel="noopener" onclick="closeYtPopup()">${esc(ch.label)} 채널 바로가기</a>`
+  ).join('');
+  overlay.innerHTML = `
+    <div id="yt-popup">
+      <div class="yt-popup-icon">📺</div>
+      <p>더 많은 영상을 보려면 유튜브 채널에서 확인해 주세요.</p>
+      <div class="yt-popup-btns">
+        ${links}
+        <button onclick="closeYtPopup()">닫기</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeYtPopup(); });
+  document.body.appendChild(overlay);
+}
+function closeYtPopup() { document.getElementById('yt-popup-overlay')?.remove(); }
+
+function parseRel(t, now) {
+  if (!t) return new Date(now - 30 * 86400_000);
+  const tr = t.trim();
+  // 오늘/어제 (한국어, 영어, 프랑스어)
+  if (/^오늘|^today|^aujourd'hui/i.test(tr))          return new Date(now - 30 * 60e3);
+  if (/^어제|^yesterday|^hier$/i.test(tr))            return new Date(now - 1 * 864e5);
+  const n = parseInt(tr.match(/\d+/)?.[0] || '1');
+  // 초
+  if (/second|초|seconde/.test(t))                    return new Date(now - n * 1e3);
+  // 분
+  if (/minute|분/.test(t))                            return new Date(now - n * 6e4);
+  // 시간 (heure = 프랑스어)
+  if (/hour|시간|heure/.test(t))                      return new Date(now - n * 36e5);
+  // 일 (jour = 프랑스어)
+  if (/\bday\b|일|jour/.test(t))                      return new Date(now - n * 864e5);
+  // 주 (semaine = 프랑스어)
+  if (/week|주|semaine/.test(t))                      return new Date(now - n * 7 * 864e5);
+  // 개월 (mois = 프랑스어)
+  if (/month|개월|mois/.test(t))                      return new Date(now - n * 30 * 864e5);
+  // 년 (an = 프랑스어)
+  if (/year|년|\ban\b|ans/.test(t))                   return new Date(now - n * 365 * 864e5);
+  return new Date(now - 30 * 864e5);
+}
+function relDate(d) {
+  const s = (Date.now() - d) / 1000;
+  if (s < 3600)   return `${Math.floor(s/60)}분 전`;
+  if (s < 86400)  return `${Math.floor(s/3600)}시간 전`;
+  if (s < 172800) return '어제';
+  return `${Math.floor(s/86400)}일 전`;
+}
+function parseViews(t) { const m = t.replace(/,/g,'').match(/\d+/); return m ? +m[0] : null; }
+function fmtN(n) {
+  if (n >= 10000) return `${Math.floor(n/10000)}만`;
+  if (n >= 1000)  return `${(n/1000).toFixed(1)}천`;
+  return String(n);
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Hero ─────────────────────────────────────────────────
+let heroMuted = true;
+let heroTimer = null;
+let heroStartedAt = 0;
+let heroPausedAt  = null;
+const HERO_IFRAME_STYLE = 'position:absolute;top:-60px;left:-10%;width:120%;height:calc(100% + 120px);border:none;pointer-events:none;transition:opacity 1s ease;';
+
+function createHeroIframe(videoId, startSec = 0) {
+  document.getElementById('hero-iframe')?.remove();
+  const iframe = document.createElement('iframe');
+  iframe.id    = 'hero-iframe';
+  iframe.style.cssText = HERO_IFRAME_STYLE;
+  iframe.allow = 'autoplay; encrypted-media';
+  iframe.allowFullscreen = true;
+  const start  = startSec > 0 ? `&start=${Math.floor(startSec)}` : '';
+  iframe.src   = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1${start}`;
+  document.getElementById('hero').insertBefore(iframe, document.getElementById('hero-gradient'));
+  return iframe;
+}
+
+function stopHeroVideo() {
+  heroPausedAt = null;
+  clearTimeout(heroTimer);
+  document.getElementById('hero-iframe')?.remove();
+  document.getElementById('hero-thumb').style.opacity  = '1';
+  document.getElementById('hero-mute').style.display   = 'none';
+  document.getElementById('hero-replay').style.display = 'flex';
+}
+
+function initHero(v) {
+  if (!v) return;
+  const thumb = document.getElementById('hero-thumb');
+  document.getElementById('hero-ch-label').textContent = v.channelLabel || '';
+  document.getElementById('hero-title').textContent    = v.title || '';
+  document.getElementById('hero-play-btn').href        = v.url || '#';
+  thumb.style.backgroundImage = `url('${v.thumb}')`;
+
+  heroMuted = true;
+  document.getElementById('hero-mute').style.display    = 'flex';
+  document.getElementById('hero-replay').style.display  = 'none';
+  document.getElementById('hero-ico-mute').style.display  = '';
+  document.getElementById('hero-ico-sound').style.display = 'none';
+
+  heroPausedAt  = null;
+  heroStartedAt = Date.now();
+  const iframe = createHeroIframe(v.id);
+  iframe.style.opacity = '1';
+  thumb.style.opacity  = '0.3';
+
+  clearTimeout(heroTimer);
+  heroTimer = setTimeout(stopHeroVideo, 60000);
+}
+
+function heroReplay() {
+  const v = window._heroVideo;
+  if (!v) return;
+  document.getElementById('hero-replay').style.display = 'none';
+  document.getElementById('hero-mute').style.display   = 'flex';
+  heroMuted = true;
+  document.getElementById('hero-ico-mute').style.display  = '';
+  document.getElementById('hero-ico-sound').style.display = 'none';
+  initHero(v);
+}
+
+function heroToggleMute() { setHeroMuted(!heroMuted); }
+
+function setHeroMuted(muted) {
+  heroMuted = muted;
+  document.getElementById('hero-iframe')
+    ?.contentWindow?.postMessage(JSON.stringify({ event:'command', func: muted ? 'mute' : 'unMute', args:[] }), '*');
+  document.getElementById('hero-ico-mute').style.display  = muted ? '' : 'none';
+  document.getElementById('hero-ico-sound').style.display = muted ? 'none' : '';
+}
+
+// Nav 스크롤 시 배경 solid
+window.addEventListener('scroll', () => {
+  document.getElementById('nf-nav').classList.toggle('solid', window.scrollY > 20);
+}, { passive: true });
+
+// 히어로 스크롤 일시정지 / 재개
+function pauseHeroForScroll() {
+  const iframe = document.getElementById('hero-iframe');
+  if (!iframe) return;
+  heroPausedAt = heroStartedAt ? Math.floor((Date.now() - heroStartedAt) / 1000) : 0;
+  clearTimeout(heroTimer);
+  iframe.contentWindow?.postMessage(JSON.stringify({event:'command', func:'pauseVideo', args:[]}), '*');
+  iframe.contentWindow?.postMessage(JSON.stringify({event:'command', func:'mute',        args:[]}), '*');
+  iframe.style.opacity = '0';
+  document.getElementById('hero-thumb').style.opacity = '1';
+}
+
+let _heroResumeTimer = null;
+function scheduleHeroResume() {
+  clearTimeout(_heroResumeTimer);
+  _heroResumeTimer = setTimeout(() => {
+    if (heroPausedAt === null || !window._heroVideo) return;
+    const iframe = document.getElementById('hero-iframe');
+    if (!iframe) return;
+    const elapsed   = heroPausedAt;
+    heroPausedAt    = null;
+    const remaining = 60 - elapsed;
+    if (remaining <= 0) { stopHeroVideo(); return; }
+    heroStartedAt = Date.now() - elapsed * 1000;
+    iframe.contentWindow?.postMessage(JSON.stringify({event:'command', func:'playVideo', args:[]}), '*');
+    iframe.style.opacity = '1';
+    document.getElementById('hero-thumb').style.opacity = '0.3';
+    clearTimeout(heroTimer);
+    heroTimer = setTimeout(stopHeroVideo, remaining * 1000);
+    if (!heroMuted) setTimeout(() => setHeroMuted(false), 300);
+  }, 300);
+}
+
+new IntersectionObserver(entries => {
+  const isVisible = entries[0].isIntersecting;
+  if (!isVisible) {
+    clearTimeout(_heroResumeTimer);
+    pauseHeroForScroll();
+  } else {
+    scheduleHeroResume();
+  }
+}, { threshold: 0.1 }).observe(document.getElementById('hero'));
+
+window.addEventListener('scroll', () => {
+  if (heroPausedAt === null) return;
+  const rect = document.getElementById('hero').getBoundingClientRect();
+  if (rect.bottom > window.innerHeight * 0.2) scheduleHeroResume();
+  else { clearTimeout(_heroResumeTimer); }
+}, { passive: true });
+
+loadVideos();
+
+// ── 재생목록 선택 기능 ────────────────────────────────────
+const selectedVideos = new Set();
+
+function toggleSelect(videoId, event) {
+  if (event) { event.preventDefault(); event.stopPropagation(); }
+  if (selectedVideos.has(videoId)) {
+    selectedVideos.delete(videoId);
+  } else {
+    selectedVideos.add(videoId);
+  }
+  document.querySelectorAll(`.card[data-vid="${videoId}"]`).forEach(c => {
+    c.classList.toggle('selected', selectedVideos.has(videoId));
+  });
+  _updatePlaylistBar();
+}
+
+function _updatePlaylistBar() {
+  const n = selectedVideos.size;
+  const numEl = document.getElementById('pl-count-num');
+  if (numEl) {
+    numEl.textContent = n;
+    numEl.classList.remove('pop');
+    void numEl.offsetWidth;
+    numEl.classList.add('pop');
+  }
+  const playTxt = document.getElementById('pl-play-txt');
+  if (playTxt) playTxt.textContent = `${n}개 영상 재생하기`;
+  document.getElementById('playlist-bar').classList.toggle('visible', n > 0);
+  document.body.classList.toggle('sel-mode', n > 0);
+  // 필터별 선택 갯수 표시
+  const secCnt = document.getElementById('pl-sec-cnt');
+  if (secCnt) {
+    if (n > 0) {
+      const counts = {};
+      FILTERS.forEach(f => { counts[f.id] = 0; });
+      document.querySelectorAll('.card[data-vid]').forEach(c => {
+        if (!selectedVideos.has(c.dataset.vid)) return;
+        const fId = c.dataset.ch;
+        if (fId && counts[fId] !== undefined) counts[fId]++;
+      });
+      const items = FILTERS
+        .filter(f => counts[f.id] > 0)
+        .map(f => {
+          const colorVar = `var(--c${FILTERS.indexOf(f)})`;
+          return `<span class="pl-sec-item" style="color:${colorVar}">${esc(f.label)} ${counts[f.id]}</span>`;
+        });
+      secCnt.innerHTML = items.join('<span class="pl-sep"> · </span>');
+    } else {
+      secCnt.innerHTML = '';
+    }
+  }
+  document.querySelectorAll('.t-section').forEach(sec => {
+    const btn = sec.querySelector('.t-selall');
+    if (!btn) return;
+    const vids = [...new Set([...sec.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))];
+    if (!vids.length) return;
+    const allSelected = vids.every(vid => selectedVideos.has(vid));
+    btn.textContent = allSelected ? '전체해제' : '전체선택';
+  });
+}
+
+function selectAllInSection(secId) {
+  const sec = document.getElementById(secId);
+  if (!sec) return;
+  const vids = [...new Set(
+    [...sec.querySelectorAll('.rail-wrap')]
+      .filter(w => w.style.display !== 'none')
+      .flatMap(w => [...w.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))
+  )];
+  if (!vids.length) return;
+  const allSelected = vids.every(vid => selectedVideos.has(vid));
+  if (allSelected) {
+    vids.forEach(vid => {
+      selectedVideos.delete(vid);
+      document.querySelectorAll(`.card[data-vid="${vid}"]`).forEach(c => c.classList.remove('selected'));
+    });
+  } else {
+    vids.forEach(vid => {
+      selectedVideos.add(vid);
+      document.querySelectorAll(`.card[data-vid="${vid}"]`).forEach(c => c.classList.add('selected'));
+    });
+    document.body.classList.add('sel-mode');
+  }
+  _updatePlaylistBar();
+}
+
+function clearSelection() {
+  selectedVideos.clear();
+  document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+  _updatePlaylistBar();
+}
+
+function playAsPlaylist() {
+  if (!selectedVideos.size) return;
+  const ids = [...selectedVideos].join(',');
+  window.open(`https://www.youtube.com/watch_videos?video_ids=${ids}`, '_blank');
+}
+
+// 카드 클릭: 선택 모드 시 토글, 일반 모드 시 YouTube 이동
+document.addEventListener('click', e => {
+  const card = e.target.closest('.card[data-vid]');
+  if (!card) return;
+  if (e.target.closest('.select-btn')) return;
+  if (selectedVideos.size > 0) {
+    toggleSelect(card.dataset.vid, e);
+  } else {
+    const href = card.dataset.href;
+    if (href) window.open(href, '_blank', 'noopener');
+  }
+}, true);
+
+// 모바일 롱프레스 선택
+let _lpTimer = null, _lpMoved = false, _lpFired = false;
+let _lpCard = null, _lpStart = null, _lpStartTime = 0;
+
+document.addEventListener('touchstart', e => {
+  const card = e.target.closest('.card[data-vid]');
+  if (!card || e.target.closest('.select-btn')) return;
+  const t      = e.touches[0];
+  _lpCard      = card;
+  _lpStart     = { x: t.clientX, y: t.clientY };
+  _lpStartTime = performance.now();
+  _lpMoved     = false;
+  _lpFired     = false;
+  clearTimeout(_lpTimer);
+  _lpTimer = setTimeout(() => {
+    if (_lpMoved) return;
+    if (navigator.vibrate) navigator.vibrate(50);
+    _lpFired = true;
+    toggleSelect(card.dataset.vid, null);
+    _lpTimer = null;
+  }, 400);
+}, { passive: true });
+
+document.addEventListener('touchmove', e => {
+  if (!_lpStart || _lpMoved) return;
+  const t = e.touches[0];
+  if (Math.abs(t.clientX - _lpStart.x) > 8 || Math.abs(t.clientY - _lpStart.y) > 8) {
+    _lpMoved = true;
+    clearTimeout(_lpTimer);
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  clearTimeout(_lpTimer);
+  _lpCard = null; _lpStart = null;
+  if (_lpFired) { _lpFired = false; e.preventDefault(); }
+}, { passive: false });
+
+document.addEventListener('touchcancel', () => {
+  clearTimeout(_lpTimer);
+  const card    = _lpCard;
+  const elapsed = performance.now() - _lpStartTime;
+  const fired   = _lpFired;
+  _lpCard = null; _lpStart = null; _lpFired = false;
+  if (fired) return;
+  if (card && !_lpMoved && elapsed >= 200) {
+    if (navigator.vibrate) navigator.vibrate(50);
+    toggleSelect(card.dataset.vid, null);
+  }
+}, { passive: true });
+
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('.card[data-vid]')) e.preventDefault();
+});
+
+// 백그라운드 복귀 시 데이터 갱신
+let _hiddenAt = 0;
+function _onAppHidden()  { _hiddenAt = Date.now(); }
+function _onAppVisible() {
+  if (_hiddenAt > 0 && Date.now() - _hiddenAt > 5 * 60 * 1000) loadVideos();
+  _hiddenAt = 0;
+}
+document.addEventListener('visibilitychange', () => {
+  document.visibilityState === 'hidden' ? _onAppHidden() : _onAppVisible();
+});
+window.addEventListener('pagehide', _onAppHidden);
+window.addEventListener('pageshow', e => { if (e.persisted) _onAppVisible(); });
+</script>
+
+<!-- 재생목록 하단 바 -->
+<div id="playlist-bar">
+  <span id="playlist-count">
+    <span id="pl-count-num">0</span>
+    <span id="pl-count-label">개 선택됨</span>
+    <div id="pl-sec-cnt"></div>
+  </span>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button id="pl-clear" class="pl-btn" onclick="clearSelection()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      선택해제
+    </button>
+    <button id="pl-play" class="pl-btn" onclick="playAsPlaylist()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+      <span id="pl-play-txt">0개 영상 재생하기</span>
+    </button>
+  </div>
+</div>
+</body>
+</html>
