@@ -860,7 +860,31 @@ function parseYtData(data, channelId, channelLabel, forcedType) {
   if (!items) return null;
   const now = new Date();
   return items.map(item => {
-    const vr = item.richItemRenderer?.content?.videoRenderer ?? item.gridVideoRenderer ?? item.videoRenderer;
+    const content = item.richItemRenderer?.content ?? item;
+
+    // ── Shorts 전용: shortsLockupViewModel 구조 ──
+    const slv = content.shortsLockupViewModel;
+    if (slv) {
+      const id = slv.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId;
+      if (!id) return null;
+      const title  = slv.overlayMetadata?.primaryText?.content ?? '';
+      const views  = parseViews(slv.overlayMetadata?.secondaryText?.content ?? '');
+      return {
+        id,
+        type: 'short',
+        title,
+        thumb: `https://i.ytimg.com/vi/${id}/oq.jpg`,
+        publishedAt: new Date(now - 7 * 864e5), // 날짜 정보 없음 → 기본값
+        timeText: '',
+        views,
+        url: `https://www.youtube.com/shorts/${id}`,
+        channel: channelId,
+        channelLabel: channelLabel,
+      };
+    }
+
+    // ── 일반 영상: videoRenderer 구조 ──
+    const vr = content.videoRenderer ?? item.gridVideoRenderer ?? item.videoRenderer;
     if (!vr?.videoId) return null;
     const id = vr.videoId;
     const tt = vr.publishedTimeText?.simpleText ?? '';
