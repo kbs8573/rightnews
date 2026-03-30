@@ -1367,10 +1367,10 @@ function parseRel(t, now) {
   if (/minute|분/.test(t))                            return new Date(now - n * 6e4);
   // 시간 (heure = 프랑스어)
   if (/hour|시간|heure/.test(t))                      return new Date(now - n * 36e5);
+  // 주 (semaine = 프랑스어) — 반드시 일(day) 보다 먼저 체크 ("1주일 전"의 "일"이 오매칭 방지)
+  if (/week|주|semaine/.test(t))                      return new Date(now - n * 7 * 864e5);
   // 일 (jour = 프랑스어)
   if (/\bday\b|일|jour/.test(t))                      return new Date(now - n * 864e5);
-  // 주 (semaine = 프랑스어)
-  if (/week|주|semaine/.test(t))                      return new Date(now - n * 7 * 864e5);
   // 개월 (mois = 프랑스어)
   if (/month|개월|mois/.test(t))                      return new Date(now - n * 30 * 864e5);
   // 년 (an = 프랑스어)
