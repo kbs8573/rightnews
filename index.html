@@ -219,6 +219,7 @@
       display: flex; align-items: center; gap: 8px;
       padding: 6px 24px 6px; font-size: 12px; color: var(--muted);
     }
+    .rail-label .rail-selall { margin-left: auto; margin-right: 0; }
     .rl-badge {
       font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;
     }
@@ -1044,9 +1045,7 @@ function render(videos) {
         <span class="t-name">${cat.label}</span>
         <span class="t-badge">${cat.badge}</span>
       </div>
-      <div class="t-head-right">
-        <button class="t-selall" onclick="selectAllInSection('sec-${i}')">전체선택</button>
-      </div>`;
+      <div class="t-head-right"></div>`;
     sec.appendChild(head);
 
     if (i === LAZY_CAT) {
@@ -1084,7 +1083,7 @@ function buildRail(items, t, catIdx, isLazy) {
 
   const labelDiv = document.createElement('div');
   labelDiv.className = 'rail-label';
-  labelDiv.innerHTML = `<span class="rl-badge ${t.rlCls}">${t.label}</span>`;
+  labelDiv.innerHTML = `<span class="rl-badge ${t.rlCls}">${t.label}</span><button class="t-selall rail-selall" onclick="selectAllInRail('${railId}')">전체선택</button>`;
   wrap.appendChild(labelDiv);
 
   const arrL = document.createElement('button');
@@ -1653,24 +1652,23 @@ function _updatePlaylistBar() {
       secCnt.innerHTML = '';
     }
   }
-  document.querySelectorAll('.t-section').forEach(sec => {
-    const btn = sec.querySelector('.t-selall');
+  document.querySelectorAll('.rail-wrap').forEach(wrap => {
+    const btn = wrap.querySelector('.rail-selall');
     if (!btn) return;
-    const vids = [...new Set([...sec.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))];
+    const vids = [...new Set([...wrap.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))];
     if (!vids.length) return;
     const allSelected = vids.every(vid => selectedVideos.has(vid));
     btn.textContent = allSelected ? '전체해제' : '전체선택';
   });
 }
 
-function selectAllInSection(secId) {
-  const sec = document.getElementById(secId);
-  if (!sec) return;
-  const vids = [...new Set(
-    [...sec.querySelectorAll('.rail-wrap')]
-      .filter(w => w.style.display !== 'none')
-      .flatMap(w => [...w.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))
-  )];
+function selectAllInRail(railId) {
+  const rail = document.getElementById(railId);
+  if (!rail) return;
+  const wrap = rail.closest('.rail-wrap');
+  const vids = [...new Set([...wrap.querySelectorAll('.card[data-vid]')]
+    .filter(c => c.style.display !== 'none')
+    .map(c => c.dataset.vid))];
   if (!vids.length) return;
   const allSelected = vids.every(vid => selectedVideos.has(vid));
   if (allSelected) {
