@@ -1101,7 +1101,7 @@ function buildRail(items, t, catIdx, isLazy) {
   wrap.appendChild(rail);
 
   const arrR = document.createElement('button');
-  arrR.className = 'arr arr-r';
+  arrR.className = 'arr arr-r hidden';
   arrR.setAttribute('aria-label', '다음');
   arrR.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>`;
   wrap.appendChild(arrR);
@@ -1122,6 +1122,8 @@ function buildRail(items, t, catIdx, isLazy) {
   };
 
   rail.addEventListener('scroll', updateArrows, { passive: true });
+  const ro = new ResizeObserver(() => updateArrows());
+  ro.observe(rail);
   requestAnimationFrame(() => updateArrows());
 
   return wrap;
