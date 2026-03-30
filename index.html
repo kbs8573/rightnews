@@ -655,52 +655,53 @@
 history.scrollRestoration = 'manual';
 
 // ── 채널 설정 (스크래핑용) ─────────────────────────────────
+const YT_LOCALE = '?hl=ko&gl=KR';
 const CHANNELS = [
   {
     id:       '1waynews-jhg',
     label:    '전한길뉴스',
-    videosUrl: 'https://www.youtube.com/@1waynews-jhg/videos',
-    shortsUrl: 'https://www.youtube.com/@1waynews-jhg/shorts',
+    videosUrl: `https://www.youtube.com/@1waynews-jhg/videos${YT_LOCALE}`,
+    shortsUrl: `https://www.youtube.com/@1waynews-jhg/shorts${YT_LOCALE}`,
     filterId: 'jeonhangil',
     ytUrl:    'https://www.youtube.com/@1waynews-jhg',
   },
   {
     id:       'hangilog',
     label:    '한기로그',
-    videosUrl: 'https://www.youtube.com/@hangilog/videos',
-    shortsUrl: 'https://www.youtube.com/@hangilog/shorts',
+    videosUrl: `https://www.youtube.com/@hangilog/videos${YT_LOCALE}`,
+    shortsUrl: `https://www.youtube.com/@hangilog/shorts${YT_LOCALE}`,
     filterId: 'jeonhangil',
     ytUrl:    'https://www.youtube.com/@hangilog',
   },
   {
     id:       'jjinkwak',
     label:    '꽉TV',
-    videosUrl: 'https://www.youtube.com/@jjinkwak/videos',
-    shortsUrl: 'https://www.youtube.com/@jjinkwak/shorts',
+    videosUrl: `https://www.youtube.com/@jjinkwak/videos${YT_LOCALE}`,
+    shortsUrl: `https://www.youtube.com/@jjinkwak/shorts${YT_LOCALE}`,
     filterId: 'jjinkwak',
     ytUrl:    'https://www.youtube.com/@jjinkwak',
   },
   {
     id:       'sensorstudio',
     label:    '센서스튜디오',
-    videosUrl: 'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/videos',
-    shortsUrl: 'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/shorts',
+    videosUrl: `https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/videos${YT_LOCALE}`,
+    shortsUrl: `https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/shorts${YT_LOCALE}`,
     filterId: 'sensorstudio',
     ytUrl:    'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624',
   },
   {
     id:       'malsenecjip',
     label:    '말세네집',
-    videosUrl: 'https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/videos',
-    shortsUrl: 'https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/shorts',
+    videosUrl: `https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/videos${YT_LOCALE}`,
+    shortsUrl: `https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/shorts${YT_LOCALE}`,
     filterId: 'malsenecjip',
     ytUrl:    'https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1',
   },
   {
     id:       'dasireodneun',
     label:    '다시읽는사회과부도',
-    videosUrl: 'https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/videos',
-    shortsUrl: 'https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/shorts',
+    videosUrl: `https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/videos${YT_LOCALE}`,
+    shortsUrl: `https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/shorts${YT_LOCALE}`,
     filterId: 'dasireodneun',
     ytUrl:    'https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4',
   },
@@ -1213,7 +1214,7 @@ function cardHTML(v) {
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
     <div class="thumb-err">▶</div>
     ${isLive ? '<span class="badge badge-live">🔴 LIVE</span>' : ''}
-    ${isNew  ? '<span class="badge badge-new">NEW</span>' : ''}
+    ${isNew  ? '<span class="badge badge-new">신규</span>' : ''}
     <span class="badge badge-when">${when}</span>
     <div class="play-wrap">
       <div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
