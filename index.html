@@ -1113,8 +1113,9 @@ function buildRail(items, t, catIdx, isLazy) {
   arrR.onclick = () => rail.scrollTo({ left: Math.min(rail.scrollWidth - rail.clientWidth, rail.scrollLeft + (cardW + 12) * 3), behavior: 'smooth' });
 
   const updateArrows = () => {
-    const atStart = rail.scrollLeft <= 2;
-    const atEnd   = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+    const scrollable = rail.scrollWidth > rail.clientWidth + 4;
+    const atStart = !scrollable || rail.scrollLeft <= 2;
+    const atEnd   = !scrollable || rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
     arrL.classList.toggle('hidden', atStart);
     arrR.classList.toggle('hidden', atEnd);
     if (isLazy && atEnd) loadMoreLazy(t, rail, arrR);
