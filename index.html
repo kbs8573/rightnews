@@ -171,9 +171,9 @@
     .c-ch6 { background: var(--c6-bg); color: var(--c6); }
 
     /* ── 필터 칩 드래그 ── */
-    .chip[draggable="true"] { cursor: grab; }
-    .chip[draggable="true"]:active { cursor: grabbing; }
-    .chip.chip-ghost { opacity: 0.25; pointer-events: none; }
+    .chip-draggable { cursor: grab; touch-action: none; }
+    .chip-draggable:active { cursor: grabbing; }
+    .chip.chip-ghost { opacity: 0.25; }
     .chip.chip-drop-left  { box-shadow: -3px 0 0 0 rgba(255,255,255,.75); }
     .chip.chip-drop-right { box-shadow:  3px 0 0 0 rgba(255,255,255,.75); }
 
@@ -807,7 +807,6 @@ function buildChannelChips() {
     div.className = `chip ${f.cls}`;
     div.id = `chip-${f.id}`;
     div.dataset.fid = f.id;
-    div.setAttribute('draggable', 'true');
     div.onclick = () => setFilter(div, f.id);
     div.innerHTML = `${f.label} <span class="cnt" id="cnt-${f.id}">0</span>`;
     _initChipDrag(div);
@@ -815,42 +814,89 @@ function buildChannelChips() {
   });
 }
 
-// ── 칩 드래그 앤 드롭 ────────────────────────────────────
-let _dragChip = null;
+// ── 칩 드래그 앤 드롭 (Pointer Events — 마우스·터치 공용) ──
+// 마우스: 5px 이상 이동하면 즉시 드래그
+// 터치:   300ms 길게 누르면 진동 후 드래그 (그 전에 이동하면 스크롤 유지)
+let _drag = null;
 
 function _initChipDrag(chip) {
-  chip.addEventListener('dragstart', e => {
-    _dragChip = chip;
-    e.dataTransfer.effectAllowed = 'move';
-    // ghost는 다음 프레임에 적용 (dragImage가 ghost 반영 전에 캡처되어야 함)
-    requestAnimationFrame(() => chip.classList.add('chip-ghost'));
-  });
-  chip.addEventListener('dragend', () => {
+  chip.classList.add('chip-draggable');
+  let _lpTimer = null;
+
+  chip.addEventListener('pointerdown', e => {
+    if (_drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    chip._pdState = { id: e.pointerId, sx: e.clientX, sy: e.clientY, isMouse: e.pointerType === 'mouse' };
+    if (!chip._pdState.isMouse) {
+      _lpTimer = setTimeout(() => {
+        _lpTimer = null;
+        if (navigator.vibrate) navigator.vibrate(40);
+        _beginDrag(chip, chip._pdState.id, chip._pdState.sx, chip._pdState.sy);
+      }, 300);
+    }
+  }, { passive: true });
+
+  chip.addEventListener('pointermove', e => {
+    const st = chip._pdState;
+    if (!st || e.pointerId !== st.id) return;
+    const moved = Math.abs(e.clientX - st.sx) > 5 || Math.abs(e.clientY - st.sy) > 5;
+    // 터치 이동 → longpress 취소, 브라우저 스크롤에 위임
+    if (_lpTimer && moved) { clearTimeout(_lpTimer); _lpTimer = null; chip._pdState = null; return; }
+    // 마우스 이동 → 즉시 드래그 시작
+    if (st.isMouse && !_drag && moved) { chip._pdState = null; _beginDrag(chip, st.id, st.sx, st.sy); }
+    if (!_drag || _drag.chip !== chip || e.pointerId !== _drag.id) return;
+    e.preventDefault();
+    _drag.ghost.style.left = (e.clientX - _drag.ox) + 'px';
+    _drag.ghost.style.top  = (e.clientY - _drag.oy) + 'px';
+    // ghost를 잠깐 숨겨 아래 요소 탐색
+    _drag.ghost.style.visibility = 'hidden';
+    const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('.chip[data-fid]');
+    _drag.ghost.style.visibility = '';
+    _clearDropIndicators();
+    if (under && under !== chip) {
+      const { left, width } = under.getBoundingClientRect();
+      under.classList.add(e.clientX < left + width / 2 ? 'chip-drop-left' : 'chip-drop-right');
+    }
+  }, { passive: false });
+
+  const _release = e => {
+    if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+    chip._pdState = null;
+    if (!_drag || _drag.chip !== chip || e.pointerId !== _drag.id) return;
+    _drag.ghost?.remove();
     chip.classList.remove('chip-ghost');
     _clearDropIndicators();
-    _dragChip = null;
-  });
-  chip.addEventListener('dragover', e => {
-    if (!_dragChip || _dragChip === chip) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    _clearDropIndicators();
-    const { left, width } = chip.getBoundingClientRect();
-    chip.classList.add(e.clientX < left + width / 2 ? 'chip-drop-left' : 'chip-drop-right');
-  });
-  chip.addEventListener('dragleave', e => {
-    // 자식 요소로 이동 시 오발동 방지
-    if (!chip.contains(e.relatedTarget)) _clearDropIndicators();
-  });
-  chip.addEventListener('drop', e => {
-    if (!_dragChip || _dragChip === chip) return;
-    e.preventDefault();
-    _clearDropIndicators();
-    const { left, width } = chip.getBoundingClientRect();
-    if (e.clientX < left + width / 2) chip.before(_dragChip);
-    else chip.after(_dragChip);
-    saveFilterOrder();
-  });
+    if (e.type === 'pointerup') {
+      const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.chip[data-fid]');
+      if (target && target !== chip) {
+        const { left, width } = target.getBoundingClientRect();
+        if (e.clientX < left + width / 2) target.before(chip);
+        else target.after(chip);
+        saveFilterOrder();
+      }
+    }
+    _drag = null;
+  };
+  chip.addEventListener('pointerup',     _release, { passive: true });
+  chip.addEventListener('pointercancel', _release, { passive: true });
+}
+
+function _beginDrag(chip, pointerId, sx, sy) {
+  const r = chip.getBoundingClientRect();
+  _drag = { chip, id: pointerId, ox: sx - r.left, oy: sy - r.top, ghost: null };
+  chip.setPointerCapture(pointerId);
+  chip.classList.add('chip-ghost');
+  _drag.ghost = _makeGhost(chip, r);
+}
+
+function _makeGhost(chip, r) {
+  const g = chip.cloneNode(true);
+  g.classList.remove('chip-ghost', 'chip-draggable', 'active');
+  g.style.cssText = `position:fixed;z-index:9999;pointer-events:none;margin:0;
+    left:${r.left}px;top:${r.top}px;width:${r.width}px;
+    opacity:.9;transform:scale(1.1) rotate(-2deg);
+    box-shadow:0 8px 28px rgba(0,0,0,.5);transition:none;cursor:grabbing;`;
+  document.body.appendChild(g);
+  return g;
 }
 
 function _clearDropIndicators() {
