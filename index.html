@@ -173,7 +173,8 @@
     .c-ch7 { background: var(--c7-bg); color: var(--c7); }
 
     /* ── 필터 칩 드래그 ── */
-    .chip-draggable { cursor: grab; touch-action: none; }
+    .chip-draggable { cursor: grab; }
+    .chip-draggable.chip-dragging { touch-action: none; }
     .chip-draggable:active { cursor: grabbing; }
     .chip.chip-ghost { opacity: 0.25; }
     .chip.chip-drop-left  { box-shadow: -3px 0 0 0 rgba(255,255,255,.75); }
@@ -841,10 +842,12 @@ function _initChipDrag(chip) {
 
   chip.addEventListener('pointerdown', e => {
     if (_drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    // 즉시 포인터 캡처 → chip 밖으로 나가도 pointermove가 chip에서 계속 수신됨
-    chip.setPointerCapture(e.pointerId);
-    chip._pdState = { id: e.pointerId, sx: e.clientX, sy: e.clientY, isMouse: e.pointerType === 'mouse' };
-    if (!chip._pdState.isMouse) {
+    const isMouse = e.pointerType === 'mouse';
+    // 마우스: 즉시 캡처 → chip 밖으로 나가도 pointermove 수신
+    // 터치: longpress 완료 후 _beginDrag에서 캡처 → 그 전까지 스크롤 허용
+    if (isMouse) chip.setPointerCapture(e.pointerId);
+    chip._pdState = { id: e.pointerId, sx: e.clientX, sy: e.clientY, isMouse };
+    if (!isMouse) {
       // 터치: 300ms 길게 누르면 드래그 시작
       _lpTimer = setTimeout(() => {
         _lpTimer = null;
@@ -887,7 +890,7 @@ function _initChipDrag(chip) {
     chip._pdState = null;
     if (!_drag || _drag.chip !== chip || e.pointerId !== _drag.id) return;
     _drag.ghost?.remove();
-    chip.classList.remove('chip-ghost');
+    chip.classList.remove('chip-ghost', 'chip-dragging');
     _clearDropIndicators();
     chip._noClick = true; // pointerup 직후 발생하는 click이 setFilter를 호출하지 않도록 억제
     if (e.type === 'pointerup') {
@@ -907,7 +910,10 @@ function _initChipDrag(chip) {
 
 function _beginDrag(chip, pointerId, sx, sy) {
   const r = chip.getBoundingClientRect();
-  // setPointerCapture은 pointerdown에서 이미 호출됨
+  // 터치: longpress 완료 시점에 캡처 + touch-action:none 적용 → 이후 스크롤 차단
+  // 마우스: pointerdown에서 이미 캡처됨
+  try { chip.setPointerCapture(pointerId); } catch {}
+  chip.classList.add('chip-dragging');
   _drag = { chip, id: pointerId, ox: sx - r.left, oy: sy - r.top, ghost: null };
   chip.classList.add('chip-ghost');
   _drag.ghost = _makeGhost(chip, r);
