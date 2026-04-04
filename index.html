@@ -25,6 +25,7 @@
       --c4: #a1a1aa; --c4-bg: rgba(161,161,170,.1);  --c4-bd: rgba(161,161,170,.3);
       --c5: #a78bfa; --c5-bg: rgba(167,139,250,.12); --c5-bd: rgba(167,139,250,.3);
       --c6: #34d399; --c6-bg: rgba(52,211,153,.12);  --c6-bd: rgba(52,211,153,.3);
+      --c7: #fbbf24; --c7-bg: rgba(251,191,36,.12);  --c7-bd: rgba(251,191,36,.3);
 
       --v-w: 258px;
       --s-w: 145px;
@@ -169,6 +170,7 @@
     .c-ch4 { background: var(--c4-bg); color: var(--c4); }
     .c-ch5 { background: var(--c5-bg); color: var(--c5); }
     .c-ch6 { background: var(--c6-bg); color: var(--c6); }
+    .c-ch7 { background: var(--c7-bg); color: var(--c7); }
 
     /* ── 필터 칩 드래그 ── */
     .chip-draggable { cursor: grab; touch-action: none; }
@@ -733,6 +735,15 @@ const CHANNELS = [
     ytUrl:      'https://www.youtube.com/@\uC6B0\uD314\uB86C\uC544',
   },
   {
+    id:         'tradeking',
+    label:      '무역킹',
+    videosUrl:  `https://www.youtube.com/@tradekingkang/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@tradekingkang/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@tradekingkang/streams${YT_LOCALE}`,
+    filterId:   'tradeking',
+    ytUrl:      'https://www.youtube.com/@tradekingkang',
+  },
+  {
     id:         'clarktv',
     label:      '대륙남TV',
     videosUrl:  `https://www.youtube.com/@clarktv1004/videos${YT_LOCALE}`,
@@ -752,6 +763,7 @@ const FILTERS = [
   { id: 'dasireodneun', label: '다시읽는사회과부도', cls: 'c-ch4', rlCls: 'rl-ch4' },
   { id: 'upalomah',    label: '우팔롬아',           cls: 'c-ch5', rlCls: 'rl-ch5' },
   { id: 'clarktv',     label: '대륙남TV',             cls: 'c-ch6', rlCls: 'rl-ch6' },
+  { id: 'tradeking',   label: '무역킹',               cls: 'c-ch7', rlCls: 'rl-ch7' },
 ];
 
 const PROXIES = [
