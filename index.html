@@ -173,7 +173,7 @@
     .c-ch7 { background: var(--c7-bg); color: var(--c7); }
 
     /* ── 필터 칩 드래그 ── */
-    .chip-draggable { cursor: grab; user-select: none; -webkit-user-select: none; }
+    .chip-draggable { cursor: grab; -webkit-touch-callout: none; }
     .chip-draggable.chip-dragging { touch-action: none; }
     .chip-draggable:active { cursor: grabbing; }
     .chip.chip-ghost { opacity: 0.25; }
@@ -838,6 +838,7 @@ let _drag = null;
 
 function _initChipDrag(chip) {
   chip.classList.add('chip-draggable');
+  chip.addEventListener('selectstart', e => e.preventDefault());
   let _lpTimer = null;
 
   chip.addEventListener('pointerdown', e => {
