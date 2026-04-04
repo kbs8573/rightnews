@@ -23,6 +23,8 @@
       --c2: #f472b6; --c2-bg: rgba(244,114,182,.12); --c2-bd: rgba(244,114,182,.3);
       --c3: #fb923c; --c3-bg: rgba(251,146,60,.12);  --c3-bd: rgba(251,146,60,.3);
       --c4: #a1a1aa; --c4-bg: rgba(161,161,170,.1);  --c4-bd: rgba(161,161,170,.3);
+      --c5: #a78bfa; --c5-bg: rgba(167,139,250,.12); --c5-bd: rgba(167,139,250,.3);
+      --c6: #34d399; --c6-bg: rgba(52,211,153,.12);  --c6-bd: rgba(52,211,153,.3);
 
       --v-w: 258px;
       --s-w: 145px;
@@ -165,6 +167,8 @@
     .c-ch2 { background: var(--c2-bg); color: var(--c2); }
     .c-ch3 { background: var(--c3-bg); color: var(--c3); }
     .c-ch4 { background: var(--c4-bg); color: var(--c4); }
+    .c-ch5 { background: var(--c5-bg); color: var(--c5); }
+    .c-ch6 { background: var(--c6-bg); color: var(--c6); }
 
     /* ── 모바일: 칩을 가로 스크롤 ── */
     @media (max-width: 600px) {
@@ -390,6 +394,7 @@
     .badge-new  { top: 6px; right: 6px;   background: #2563eb; color: #fff; }
     .badge-live { top: 6px; left: 6px;   background: #dc2626; color: #fff; }
     .badge-when { bottom: 6px; left: 6px; background: rgba(0,0,0,.78); color: #fff; border-radius: 4px; }
+    .badge-dur  { bottom: 6px; right: 6px; background: rgba(0,0,0,.78); color: #fff; border-radius: 4px; }
 
     .play-wrap {
       position: absolute; inset: 0;
@@ -658,52 +663,76 @@ history.scrollRestoration = 'manual';
 const YT_LOCALE = '?hl=ko&gl=KR';
 const CHANNELS = [
   {
-    id:       '1waynews-jhg',
-    label:    '전한길뉴스',
-    videosUrl: `https://www.youtube.com/@1waynews-jhg/videos${YT_LOCALE}`,
-    shortsUrl: `https://www.youtube.com/@1waynews-jhg/shorts${YT_LOCALE}`,
-    filterId: 'jeonhangil',
-    ytUrl:    'https://www.youtube.com/@1waynews-jhg',
+    id:         '1waynews-jhg',
+    label:      '전한길뉴스',
+    videosUrl:  `https://www.youtube.com/@1waynews-jhg/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@1waynews-jhg/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@1waynews-jhg/streams${YT_LOCALE}`,
+    filterId:   'jeonhangil',
+    ytUrl:      'https://www.youtube.com/@1waynews-jhg',
   },
   {
-    id:       'hangilog',
-    label:    '한기로그',
-    videosUrl: `https://www.youtube.com/@hangilog/videos${YT_LOCALE}`,
-    shortsUrl: `https://www.youtube.com/@hangilog/shorts${YT_LOCALE}`,
-    filterId: 'jeonhangil',
-    ytUrl:    'https://www.youtube.com/@hangilog',
+    id:         'hangilog',
+    label:      '한기로그',
+    videosUrl:  `https://www.youtube.com/@hangilog/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@hangilog/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@hangilog/streams${YT_LOCALE}`,
+    filterId:   'jeonhangil',
+    ytUrl:      'https://www.youtube.com/@hangilog',
   },
   {
-    id:       'jjinkwak',
-    label:    '꽉TV',
-    videosUrl: `https://www.youtube.com/@jjinkwak/videos${YT_LOCALE}`,
-    shortsUrl: `https://www.youtube.com/@jjinkwak/shorts${YT_LOCALE}`,
-    filterId: 'jjinkwak',
-    ytUrl:    'https://www.youtube.com/@jjinkwak',
+    id:         'jjinkwak',
+    label:      '꽉TV',
+    videosUrl:  `https://www.youtube.com/@jjinkwak/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@jjinkwak/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@jjinkwak/streams${YT_LOCALE}`,
+    filterId:   'jjinkwak',
+    ytUrl:      'https://www.youtube.com/@jjinkwak',
   },
   {
-    id:       'sensorstudio',
-    label:    '센서스튜디오',
-    videosUrl: `https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/videos${YT_LOCALE}`,
-    shortsUrl: `https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/shorts${YT_LOCALE}`,
-    filterId: 'sensorstudio',
-    ytUrl:    'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624',
+    id:         'sensorstudio',
+    label:      '센서스튜디오',
+    videosUrl:  `https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624/streams${YT_LOCALE}`,
+    filterId:   'sensorstudio',
+    ytUrl:      'https://www.youtube.com/@\uC13C\uC11C\uC2A4\uD29C\uB514\uC624',
   },
   {
-    id:       'malsenecjip',
-    label:    '말세네집',
-    videosUrl: `https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/videos${YT_LOCALE}`,
-    shortsUrl: `https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/shorts${YT_LOCALE}`,
-    filterId: 'malsenecjip',
-    ytUrl:    'https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1',
+    id:         'malsenecjip',
+    label:      '말세네집',
+    videosUrl:  `https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1/streams${YT_LOCALE}`,
+    filterId:   'malsenecjip',
+    ytUrl:      'https://www.youtube.com/@\uB9D0\uC138\uB124\uC9D1',
   },
   {
-    id:       'dasireodneun',
-    label:    '다시읽는사회과부도',
-    videosUrl: `https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/videos${YT_LOCALE}`,
-    shortsUrl: `https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/shorts${YT_LOCALE}`,
-    filterId: 'dasireodneun',
-    ytUrl:    'https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4',
+    id:         'dasireodneun',
+    label:      '다시읽는사회과부도',
+    videosUrl:  `https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4/streams${YT_LOCALE}`,
+    filterId:   'dasireodneun',
+    ytUrl:      'https://www.youtube.com/@\uB2E4\uC2DC\uC77D\uB294\uC0AC\uD68C\uACFC\uBD80\uB3C4',
+  },
+  {
+    id:         'upalomah',
+    label:      '우팔롬아',
+    videosUrl:  `https://www.youtube.com/@\uC6B0\uD314\uB86C\uC544/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@\uC6B0\uD314\uB86C\uC544/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@\uC6B0\uD314\uB86C\uC544/streams${YT_LOCALE}`,
+    filterId:   'upalomah',
+    ytUrl:      'https://www.youtube.com/@\uC6B0\uD314\uB86C\uC544',
+  },
+  {
+    id:         'clarktv',
+    label:      'clarktv1004',
+    videosUrl:  `https://www.youtube.com/@clarktv1004/videos${YT_LOCALE}`,
+    shortsUrl:  `https://www.youtube.com/@clarktv1004/shorts${YT_LOCALE}`,
+    streamsUrl: `https://www.youtube.com/@clarktv1004/streams${YT_LOCALE}`,
+    filterId:   'clarktv',
+    ytUrl:      'https://www.youtube.com/@clarktv1004',
   },
 ];
 
@@ -714,6 +743,8 @@ const FILTERS = [
   { id: 'sensorstudio', label: '센서스튜디오',     cls: 'c-ch2', rlCls: 'rl-ch2' },
   { id: 'malsenecjip',  label: '말세네집',          cls: 'c-ch3', rlCls: 'rl-ch3' },
   { id: 'dasireodneun', label: '다시읽는사회과부도', cls: 'c-ch4', rlCls: 'rl-ch4' },
+  { id: 'upalomah',    label: '우팔롬아',           cls: 'c-ch5', rlCls: 'rl-ch5' },
+  { id: 'clarktv',     label: 'clarktv1004',        cls: 'c-ch6', rlCls: 'rl-ch6' },
 ];
 
 const PROXIES = [
@@ -760,21 +791,9 @@ function isLiveVideo(v) {
 function pickHeroVideo(videos) {
   const candidates = videos.filter(v => (v.type || 'video') !== 'short');
   const pool_src = candidates.length ? candidates : videos;
-  const now = Date.now();
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-
-  const currentLive = pool_src.find(v =>
-    isLiveVideo(v) && (now - new Date(v.publishedAt).getTime()) < 4 * 3600_000
-  );
-  if (currentLive) return currentLive;
-
-  const todayVids     = pool_src.filter(v => new Date(v.publishedAt) >= todayStart);
-  const todayLive     = todayVids.find(v => isLiveVideo(v));
-  const mostViewed    = [...pool_src].sort((a, b) => (b.views||0) - (a.views||0))[0];
-  const mostRecent    = pool_src[0];
-  const todayTopView  = [...todayVids].sort((a, b) => (b.views||0) - (a.views||0))[0];
-
-  const pool = [...new Set([todayLive, mostViewed, mostRecent, todayTopView].filter(Boolean))];
+  const todayVids = pool_src.filter(v => new Date(v.publishedAt) >= todayStart);
+  const pool = todayVids.length ? todayVids : pool_src;
   return pool[Math.floor(Math.random() * pool.length)] || pool_src[0];
 }
 
@@ -805,14 +824,16 @@ async function loadVideos() {
   // 채널별 병렬 처리: videos + shorts 스크래핑 → RSS로 Shorts 날짜 보정
   const channelResults = await Promise.allSettled(
     CHANNELS.map(async ch => {
-      const [vRes, sRes] = await Promise.allSettled([
+      const [vRes, sRes, stRes] = await Promise.allSettled([
         scrapeChannelUrl(ch, ch.videosUrl, 'video'),
         scrapeChannelUrl(ch, ch.shortsUrl, 'short'),
+        scrapeChannelUrl(ch, ch.streamsUrl, 'video'),
       ]);
-      const channelId = vRes.value?.channelId || sRes.value?.channelId;
+      const channelId = vRes.value?.channelId || sRes.value?.channelId || stRes.value?.channelId;
       let items = [
         ...(vRes.value?.videos || []),
         ...(sRes.value?.videos || []),
+        ...(stRes.value?.videos || []),
       ].filter(Boolean);
 
       // RSS로 Shorts 실제 날짜 보정 (날짜 없이 기본값이 들어간 항목 수정)
@@ -991,6 +1012,7 @@ function parseYtData(data, channelId, channelLabel, forcedType) {
       thumb: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
       publishedAt, timeText: tt,
       views: parseViews(vr.viewCountText?.simpleText ?? ''),
+      duration: vr.lengthText?.simpleText ?? '',
       url: type === 'short'
         ? `https://www.youtube.com/shorts/${id}`
         : `https://www.youtube.com/watch?v=${id}`,
@@ -1216,6 +1238,7 @@ function cardHTML(v) {
     ${isLive ? '<span class="badge badge-live">🔴 LIVE</span>' : ''}
     ${isNew  ? '<span class="badge badge-new">신규</span>' : ''}
     <span class="badge badge-when">${when}</span>
+    ${v.duration ? `<span class="badge badge-dur">${esc(v.duration)}</span>` : ''}
     <div class="play-wrap">
       <div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
     </div>
@@ -1456,8 +1479,8 @@ function parseRel(t, now) {
   if (/second|초|seconde/.test(t))                     return new Date(now - n * 1e3);
   // 분
   if (/minute|분/.test(t))                             return new Date(now - n * 6e4);
-  // 시간 (heure = 프랑스어)
-  if (/hour|시간|heure/.test(t))                       return new Date(now - n * 36e5);
+  // 시간 (heure = 프랑스어) — "스트리밍 시간:" 레이블 오매칭 방지: 숫자 뒤에 시간만 매칭
+  if (/\d+\s*(?:hour|시간|heure)/.test(t))             return new Date(now - n * 36e5);
   // 주 (semaine = 프랑스어) — 반드시 일(day) 보다 먼저 체크 ("1주일 전"의 "일"이 오매칭 방지)
   if (/week|주|semaine/.test(t))                       return new Date(now - n * 7 * 864e5);
   // 일 (jour = 프랑스어)
