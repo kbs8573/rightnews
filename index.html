@@ -999,6 +999,12 @@ function parseYtData(data, channelId, channelLabel, forcedType) {
     // ── 일반 영상: videoRenderer 구조 ──
     const vr = content.videoRenderer ?? item.gridVideoRenderer ?? item.videoRenderer;
     if (!vr?.videoId) return null;
+    // 구독자 전용(회원 전용) 영상 제외
+    const isMembersOnly = vr.badges?.some(b =>
+      /MEMBERS_ONLY/.test(b.metadataBadgeRenderer?.style ?? '') ||
+      /회원 전용|members.?only/i.test(b.metadataBadgeRenderer?.label ?? '')
+    );
+    if (isMembersOnly) return null;
     const id = vr.videoId;
     const tt = vr.publishedTimeText?.simpleText ?? '';
     const isLiveNow = vr.badges?.some(b =>
@@ -1740,6 +1746,7 @@ function playAsPlaylist() {
   if (!selectedVideos.size) return;
   const ids = [...selectedVideos].join(',');
   window.open(`https://www.youtube.com/watch_videos?video_ids=${ids}`, '_blank');
+  clearSelection();
 }
 
 // 카드 클릭: 선택 모드 시 토글, 일반 모드 시 YouTube 이동
