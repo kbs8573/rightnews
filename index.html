@@ -170,6 +170,13 @@
     .c-ch5 { background: var(--c5-bg); color: var(--c5); }
     .c-ch6 { background: var(--c6-bg); color: var(--c6); }
 
+    /* ── 필터 칩 드래그 ── */
+    .chip[draggable="true"] { cursor: grab; }
+    .chip[draggable="true"]:active { cursor: grabbing; }
+    .chip.chip-ghost { opacity: 0.25; pointer-events: none; }
+    .chip.chip-drop-left  { box-shadow: -3px 0 0 0 rgba(255,255,255,.75); }
+    .chip.chip-drop-right { box-shadow:  3px 0 0 0 rgba(255,255,255,.75); }
+
     /* ── 모바일: 칩을 가로 스크롤 ── */
     @media (max-width: 600px) {
       .filter-bar {
@@ -769,18 +776,86 @@ const LAZY_BATCH = 7;
 let lazyStore  = {};
 let lazyOffset = {};
 
+// ── 필터 순서 저장/복원 (localStorage) ────────────────────
+const LS_FILTER_ORDER = 'rn-filter-order';
+function loadFilterOrder() {
+  try { return JSON.parse(localStorage.getItem(LS_FILTER_ORDER) || 'null'); }
+  catch { return null; }
+}
+function saveFilterOrder() {
+  const ids = [...document.querySelectorAll('#filter-bar .chip[data-fid]')]
+    .map(c => c.dataset.fid);
+  localStorage.setItem(LS_FILTER_ORDER, JSON.stringify(ids));
+}
+
 // ── 채널 칩 동적 생성 ──────────────────────────────────────
 function buildChannelChips() {
   const bar = document.getElementById('filter-bar');
-  FILTERS.forEach(f => {
+  const savedOrder = loadFilterOrder();
+  const ordered = savedOrder
+    ? [...FILTERS].sort((a, b) => {
+        const ai = savedOrder.indexOf(a.id);
+        const bi = savedOrder.indexOf(b.id);
+        return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+      })
+    : [...FILTERS];
+
+  ordered.forEach(f => {
     const div = document.createElement('div');
     div.className = `chip ${f.cls}`;
     div.id = `chip-${f.id}`;
+    div.dataset.fid = f.id;
+    div.setAttribute('draggable', 'true');
     div.onclick = () => setFilter(div, f.id);
     div.innerHTML = `${f.label} <span class="cnt" id="cnt-${f.id}">0</span>`;
+    _initChipDrag(div);
     bar.appendChild(div);
   });
 }
+
+// ── 칩 드래그 앤 드롭 ────────────────────────────────────
+let _dragChip = null;
+
+function _initChipDrag(chip) {
+  chip.addEventListener('dragstart', e => {
+    _dragChip = chip;
+    e.dataTransfer.effectAllowed = 'move';
+    // ghost는 다음 프레임에 적용 (dragImage가 ghost 반영 전에 캡처되어야 함)
+    requestAnimationFrame(() => chip.classList.add('chip-ghost'));
+  });
+  chip.addEventListener('dragend', () => {
+    chip.classList.remove('chip-ghost');
+    _clearDropIndicators();
+    _dragChip = null;
+  });
+  chip.addEventListener('dragover', e => {
+    if (!_dragChip || _dragChip === chip) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    _clearDropIndicators();
+    const { left, width } = chip.getBoundingClientRect();
+    chip.classList.add(e.clientX < left + width / 2 ? 'chip-drop-left' : 'chip-drop-right');
+  });
+  chip.addEventListener('dragleave', e => {
+    // 자식 요소로 이동 시 오발동 방지
+    if (!chip.contains(e.relatedTarget)) _clearDropIndicators();
+  });
+  chip.addEventListener('drop', e => {
+    if (!_dragChip || _dragChip === chip) return;
+    e.preventDefault();
+    _clearDropIndicators();
+    const { left, width } = chip.getBoundingClientRect();
+    if (e.clientX < left + width / 2) chip.before(_dragChip);
+    else chip.after(_dragChip);
+    saveFilterOrder();
+  });
+}
+
+function _clearDropIndicators() {
+  document.querySelectorAll('.chip-drop-left, .chip-drop-right')
+    .forEach(c => c.classList.remove('chip-drop-left', 'chip-drop-right'));
+}
+
 buildChannelChips();
 
 // ── 유틸 ─────────────────────────────────────────────────
