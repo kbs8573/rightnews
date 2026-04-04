@@ -829,37 +829,45 @@ function _initChipDrag(chip) {
 
   chip.addEventListener('pointerdown', e => {
     if (_drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    // 즉시 포인터 캡처 → chip 밖으로 나가도 pointermove가 chip에서 계속 수신됨
+    chip.setPointerCapture(e.pointerId);
     chip._pdState = { id: e.pointerId, sx: e.clientX, sy: e.clientY, isMouse: e.pointerType === 'mouse' };
     if (!chip._pdState.isMouse) {
+      // 터치: 300ms 길게 누르면 드래그 시작
       _lpTimer = setTimeout(() => {
         _lpTimer = null;
+        const st = chip._pdState;
+        if (!st) return;
+        chip._pdState = null;
         if (navigator.vibrate) navigator.vibrate(40);
-        _beginDrag(chip, chip._pdState.id, chip._pdState.sx, chip._pdState.sy);
+        _beginDrag(chip, st.id, st.sx, st.sy);
       }, 300);
     }
   }, { passive: true });
 
   chip.addEventListener('pointermove', e => {
+    // ── 드래그 진행 중: ghost 이동 + 드롭 위치 표시 ──
+    if (_drag && _drag.chip === chip && e.pointerId === _drag.id) {
+      e.preventDefault();
+      _drag.ghost.style.left = (e.clientX - _drag.ox) + 'px';
+      _drag.ghost.style.top  = (e.clientY - _drag.oy) + 'px';
+      _drag.ghost.style.visibility = 'hidden';
+      const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('.chip[data-fid]');
+      _drag.ghost.style.visibility = '';
+      _clearDropIndicators();
+      if (under && under !== chip) {
+        const { left, width } = under.getBoundingClientRect();
+        under.classList.add(e.clientX < left + width / 2 ? 'chip-drop-left' : 'chip-drop-right');
+      }
+      return;
+    }
+    // ── 드래그 시작 전: 이동량 체크 ──
     const st = chip._pdState;
     if (!st || e.pointerId !== st.id) return;
     const moved = Math.abs(e.clientX - st.sx) > 8 || Math.abs(e.clientY - st.sy) > 8;
-    // 터치 이동 → longpress 취소, 브라우저 스크롤에 위임
-    if (_lpTimer && moved) { clearTimeout(_lpTimer); _lpTimer = null; chip._pdState = null; return; }
-    // 마우스 이동 → 즉시 드래그 시작
-    if (st.isMouse && !_drag && moved) { chip._pdState = null; _beginDrag(chip, st.id, st.sx, st.sy); }
-    if (!_drag || _drag.chip !== chip || e.pointerId !== _drag.id) return;
-    e.preventDefault();
-    _drag.ghost.style.left = (e.clientX - _drag.ox) + 'px';
-    _drag.ghost.style.top  = (e.clientY - _drag.oy) + 'px';
-    // ghost를 잠깐 숨겨 아래 요소 탐색
-    _drag.ghost.style.visibility = 'hidden';
-    const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('.chip[data-fid]');
-    _drag.ghost.style.visibility = '';
-    _clearDropIndicators();
-    if (under && under !== chip) {
-      const { left, width } = under.getBoundingClientRect();
-      under.classList.add(e.clientX < left + width / 2 ? 'chip-drop-left' : 'chip-drop-right');
-    }
+    if (!moved) return;
+    if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; chip._pdState = null; return; } // 터치 스크롤
+    if (st.isMouse) { chip._pdState = null; _beginDrag(chip, st.id, st.sx, st.sy); }         // 마우스 드래그
   }, { passive: false });
 
   const _release = e => {
@@ -869,8 +877,7 @@ function _initChipDrag(chip) {
     _drag.ghost?.remove();
     chip.classList.remove('chip-ghost');
     _clearDropIndicators();
-    // 드래그 후 발생하는 click 이벤트가 setFilter를 호출하지 않도록 억제
-    chip._noClick = true;
+    chip._noClick = true; // pointerup 직후 발생하는 click이 setFilter를 호출하지 않도록 억제
     if (e.type === 'pointerup') {
       const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.chip[data-fid]');
       if (target && target !== chip) {
@@ -888,8 +895,8 @@ function _initChipDrag(chip) {
 
 function _beginDrag(chip, pointerId, sx, sy) {
   const r = chip.getBoundingClientRect();
+  // setPointerCapture은 pointerdown에서 이미 호출됨
   _drag = { chip, id: pointerId, ox: sx - r.left, oy: sy - r.top, ghost: null };
-  chip.setPointerCapture(pointerId);
   chip.classList.add('chip-ghost');
   _drag.ghost = _makeGhost(chip, r);
 }
