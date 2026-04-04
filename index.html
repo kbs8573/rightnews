@@ -807,7 +807,11 @@ function buildChannelChips() {
     div.className = `chip ${f.cls}`;
     div.id = `chip-${f.id}`;
     div.dataset.fid = f.id;
-    div.onclick = () => setFilter(div, f.id);
+    // onclick 대신 addEventListener 사용 — 드래그 후 click 억제 가능하도록
+    div.addEventListener('click', () => {
+      if (div._noClick) { div._noClick = false; return; }
+      setFilter(div, f.id);
+    });
     div.innerHTML = `${f.label} <span class="cnt" id="cnt-${f.id}">0</span>`;
     _initChipDrag(div);
     bar.appendChild(div);
@@ -838,7 +842,7 @@ function _initChipDrag(chip) {
   chip.addEventListener('pointermove', e => {
     const st = chip._pdState;
     if (!st || e.pointerId !== st.id) return;
-    const moved = Math.abs(e.clientX - st.sx) > 5 || Math.abs(e.clientY - st.sy) > 5;
+    const moved = Math.abs(e.clientX - st.sx) > 8 || Math.abs(e.clientY - st.sy) > 8;
     // 터치 이동 → longpress 취소, 브라우저 스크롤에 위임
     if (_lpTimer && moved) { clearTimeout(_lpTimer); _lpTimer = null; chip._pdState = null; return; }
     // 마우스 이동 → 즉시 드래그 시작
@@ -865,6 +869,8 @@ function _initChipDrag(chip) {
     _drag.ghost?.remove();
     chip.classList.remove('chip-ghost');
     _clearDropIndicators();
+    // 드래그 후 발생하는 click 이벤트가 setFilter를 호출하지 않도록 억제
+    chip._noClick = true;
     if (e.type === 'pointerup') {
       const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.chip[data-fid]');
       if (target && target !== chip) {
