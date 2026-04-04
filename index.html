@@ -173,7 +173,7 @@
     .c-ch7 { background: var(--c7-bg); color: var(--c7); }
 
     /* ── 필터 칩 드래그 ── */
-    .chip-draggable { cursor: grab; -webkit-touch-callout: none; }
+    .chip-draggable { cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
     .chip-draggable.chip-dragging { touch-action: none; }
     .chip-draggable:active { cursor: grabbing; }
     .chip.chip-ghost { opacity: 0.25; }
@@ -831,94 +831,146 @@ function buildChannelChips() {
   });
 }
 
-// ── 칩 드래그 앤 드롭 (Pointer Events — 마우스·터치 공용) ──
-// 마우스: 5px 이상 이동하면 즉시 드래그
-// 터치:   300ms 길게 누르면 진동 후 드래그 (그 전에 이동하면 스크롤 유지)
+// ── 칩 드래그 앤 드롭 ──────────────────────────────────────
+// 마우스: Pointer Events — 8px 이동 즉시 드래그
+// 터치:   Touch Events  — 300ms 길게 누름 후 드래그
+//   (Touch Events는 user-select:none의 pointercancel 영향을 받지 않음)
 let _drag = null;
 
 function _initChipDrag(chip) {
   chip.classList.add('chip-draggable');
-  chip.addEventListener('selectstart', e => e.preventDefault());
-  let _lpTimer = null;
 
+  // ── 마우스 (Pointer Events) ──────────────────────────────
   chip.addEventListener('pointerdown', e => {
-    if (_drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    const isMouse = e.pointerType === 'mouse';
-    // 마우스: 즉시 캡처 → chip 밖으로 나가도 pointermove 수신
-    // 터치: longpress 완료 후 _beginDrag에서 캡처 → 그 전까지 스크롤 허용
-    if (isMouse) chip.setPointerCapture(e.pointerId);
-    chip._pdState = { id: e.pointerId, sx: e.clientX, sy: e.clientY, isMouse };
-    if (!isMouse) {
-      // 터치: 300ms 길게 누르면 드래그 시작
-      _lpTimer = setTimeout(() => {
-        _lpTimer = null;
-        const st = chip._pdState;
-        if (!st) return;
-        chip._pdState = null;
-        if (navigator.vibrate) navigator.vibrate(40);
-        _beginDrag(chip, st.id, st.sx, st.sy);
-      }, 300);
-    }
+    if (e.pointerType !== 'mouse' || e.button !== 0 || _drag) return;
+    chip.setPointerCapture(e.pointerId);
+    chip._msState = { id: e.pointerId, sx: e.clientX, sy: e.clientY };
   }, { passive: true });
 
   chip.addEventListener('pointermove', e => {
-    // ── 드래그 진행 중: ghost 이동 + 드롭 위치 표시 ──
-    if (_drag && _drag.chip === chip && e.pointerId === _drag.id) {
+    if (e.pointerType !== 'mouse') return;
+    if (_drag && _drag.chip === chip) {
       e.preventDefault();
-      _drag.ghost.style.left = (e.clientX - _drag.ox) + 'px';
-      _drag.ghost.style.top  = (e.clientY - _drag.oy) + 'px';
-      _drag.ghost.style.visibility = 'hidden';
-      const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('.chip[data-fid]');
-      _drag.ghost.style.visibility = '';
-      _clearDropIndicators();
-      if (under && under !== chip) {
-        const { left, width } = under.getBoundingClientRect();
-        under.classList.add(e.clientX < left + width / 2 ? 'chip-drop-left' : 'chip-drop-right');
-      }
+      _moveDrag(e.clientX, e.clientY);
       return;
     }
-    // ── 드래그 시작 전: 이동량 체크 ──
-    const st = chip._pdState;
+    const st = chip._msState;
     if (!st || e.pointerId !== st.id) return;
-    const moved = Math.abs(e.clientX - st.sx) > 8 || Math.abs(e.clientY - st.sy) > 8;
-    if (!moved) return;
-    if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; chip._pdState = null; return; } // 터치 스크롤
-    if (st.isMouse) { chip._pdState = null; _beginDrag(chip, st.id, st.sx, st.sy); }         // 마우스 드래그
+    if (Math.abs(e.clientX - st.sx) > 8 || Math.abs(e.clientY - st.sy) > 8) {
+      chip._msState = null;
+      _startDrag(chip, e.clientX, e.clientY);
+    }
   }, { passive: false });
 
-  const _release = e => {
-    if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
-    chip._pdState = null;
-    if (!_drag || _drag.chip !== chip || e.pointerId !== _drag.id) return;
-    _drag.ghost?.remove();
-    chip.classList.remove('chip-ghost', 'chip-dragging');
-    _clearDropIndicators();
-    chip._noClick = true; // pointerup 직후 발생하는 click이 setFilter를 호출하지 않도록 억제
-    if (e.type === 'pointerup') {
-      const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.chip[data-fid]');
-      if (target && target !== chip) {
-        const { left, width } = target.getBoundingClientRect();
-        if (e.clientX < left + width / 2) target.before(chip);
-        else target.after(chip);
-        saveFilterOrder();
-      }
+  chip.addEventListener('pointerup', e => {
+    if (e.pointerType !== 'mouse') return;
+    chip._msState = null;
+    if (!_drag || _drag.chip !== chip) return;
+    chip._noClick = true;
+    _endDrag(e.clientX, e.clientY);
+  }, { passive: true });
+
+  chip.addEventListener('pointercancel', e => {
+    if (e.pointerType !== 'mouse') return;
+    chip._msState = null;
+    if (_drag?.chip === chip) _cancelDrag();
+  }, { passive: true });
+
+  // ── 터치 (Touch Events) ──────────────────────────────────
+  let _lpTimer = null, _touch = null;
+
+  chip.addEventListener('touchstart', e => {
+    if (_drag || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    _touch = { id: t.identifier, sx: t.clientX, sy: t.clientY };
+    _lpTimer = setTimeout(() => {
+      _lpTimer = null;
+      if (!_touch) return;
+      const { id, sx, sy } = _touch;
+      _touch = null;
+      if (navigator.vibrate) navigator.vibrate(40);
+      chip.classList.add('chip-dragging'); // touch-action:none 적용 → 이후 스크롤 차단
+      _startDrag(chip, sx, sy);
+      if (_drag) _drag.touchId = id;
+    }, 300);
+  }, { passive: true });
+
+  chip.addEventListener('touchmove', e => {
+    if (_drag && _drag.chip === chip) {
+      e.preventDefault();
+      const t = [...e.changedTouches].find(t => t.identifier === _drag.touchId);
+      if (t) _moveDrag(t.clientX, t.clientY);
+      return;
     }
-    _drag = null;
-  };
-  chip.addEventListener('pointerup',     _release, { passive: true });
-  chip.addEventListener('pointercancel', _release, { passive: true });
+    if (!_touch) return;
+    const t = [...e.changedTouches].find(t => t.identifier === _touch.id);
+    if (!t) return;
+    if (Math.abs(t.clientX - _touch.sx) > 8 || Math.abs(t.clientY - _touch.sy) > 8) {
+      // 손가락 이동 → longpress 취소, 스크롤 허용
+      clearTimeout(_lpTimer); _lpTimer = null; _touch = null;
+    }
+  }, { passive: false });
+
+  chip.addEventListener('touchend', e => {
+    clearTimeout(_lpTimer); _lpTimer = null; _touch = null;
+    if (!_drag || _drag.chip !== chip) return;
+    chip.classList.remove('chip-dragging');
+    const t = [...e.changedTouches].find(t => t.identifier === _drag.touchId);
+    _endDrag(t?.clientX ?? _drag.lx, t?.clientY ?? _drag.ly);
+  }, { passive: true });
+
+  chip.addEventListener('touchcancel', () => {
+    clearTimeout(_lpTimer); _lpTimer = null; _touch = null;
+    if (_drag?.chip === chip) { chip.classList.remove('chip-dragging'); _cancelDrag(); }
+  }, { passive: true });
 }
 
-function _beginDrag(chip, pointerId, sx, sy) {
+function _startDrag(chip, cx, cy) {
   const r = chip.getBoundingClientRect();
-  // 터치: longpress 완료 시점에 캡처 + touch-action:none 적용 → 이후 스크롤 차단
-  // 마우스: pointerdown에서 이미 캡처됨
-  try { chip.setPointerCapture(pointerId); } catch {}
-  chip.classList.add('chip-dragging');
-  _drag = { chip, id: pointerId, ox: sx - r.left, oy: sy - r.top, ghost: null };
+  _drag = { chip, ox: cx - r.left, oy: cy - r.top, lx: cx, ly: cy, touchId: null };
   chip.classList.add('chip-ghost');
   _drag.ghost = _makeGhost(chip, r);
 }
+
+function _moveDrag(cx, cy) {
+  if (!_drag) return;
+  _drag.lx = cx; _drag.ly = cy;
+  _drag.ghost.style.left = (cx - _drag.ox) + 'px';
+  _drag.ghost.style.top  = (cy - _drag.oy) + 'px';
+  _drag.ghost.style.visibility = 'hidden';
+  const under = document.elementFromPoint(cx, cy)?.closest('.chip[data-fid]');
+  _drag.ghost.style.visibility = '';
+  _clearDropIndicators();
+  if (under && under !== _drag.chip) {
+    const { left, width } = under.getBoundingClientRect();
+    under.classList.add(cx < left + width / 2 ? 'chip-drop-left' : 'chip-drop-right');
+  }
+}
+
+function _endDrag(cx, cy) {
+  if (!_drag) return;
+  const chip = _drag.chip;
+  _drag.ghost?.remove();
+  chip.classList.remove('chip-ghost', 'chip-dragging');
+  _clearDropIndicators();
+  const target = document.elementFromPoint(cx, cy)?.closest('.chip[data-fid]');
+  if (target && target !== chip) {
+    const { left, width } = target.getBoundingClientRect();
+    if (cx < left + width / 2) target.before(chip);
+    else target.after(chip);
+    saveFilterOrder();
+  }
+  _drag = null;
+}
+
+function _cancelDrag() {
+  if (!_drag) return;
+  _drag.ghost?.remove();
+  _drag.chip.classList.remove('chip-ghost', 'chip-dragging');
+  _clearDropIndicators();
+  _drag = null;
+}
+
 
 function _makeGhost(chip, r) {
   const g = chip.cloneNode(true);
