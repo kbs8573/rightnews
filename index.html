@@ -727,7 +727,7 @@ const CHANNELS = [
   },
   {
     id:         'clarktv',
-    label:      'clarktv1004',
+    label:      '대륙남TV',
     videosUrl:  `https://www.youtube.com/@clarktv1004/videos${YT_LOCALE}`,
     shortsUrl:  `https://www.youtube.com/@clarktv1004/shorts${YT_LOCALE}`,
     streamsUrl: `https://www.youtube.com/@clarktv1004/streams${YT_LOCALE}`,
@@ -744,7 +744,7 @@ const FILTERS = [
   { id: 'malsenecjip',  label: '말세네집',          cls: 'c-ch3', rlCls: 'rl-ch3' },
   { id: 'dasireodneun', label: '다시읽는사회과부도', cls: 'c-ch4', rlCls: 'rl-ch4' },
   { id: 'upalomah',    label: '우팔롬아',           cls: 'c-ch5', rlCls: 'rl-ch5' },
-  { id: 'clarktv',     label: 'clarktv1004',        cls: 'c-ch6', rlCls: 'rl-ch6' },
+  { id: 'clarktv',     label: '대륙남TV',             cls: 'c-ch6', rlCls: 'rl-ch6' },
 ];
 
 const PROXIES = [
@@ -851,7 +851,10 @@ async function loadVideos() {
     })
   );
 
-  // 합치기 + 중복 제거 (같은 id 중 short 타입 우선)
+  // 합치기 + 중복 제거
+  // ※ 레슨런: /videos 스크래핑(type:'video')과 /shorts 스크래핑(type:'short')에서
+  //   같은 videoId가 중복 등장할 수 있음. short가 video를 덮어쓰면 정상 동영상이
+  //   Shorts 카드로 잘못 분류되므로, video/live > short 우선순위를 유지한다.
   const raw = channelResults
     .filter(r => r.status === 'fulfilled' && r.value?.length)
     .flatMap(r => r.value);
@@ -862,7 +865,10 @@ async function loadVideos() {
     if (!seen.has(v.id)) {
       seen.set(v.id, deduped.length);
       deduped.push(v);
-    } else if (v.type === 'short') {
+    } else {
+      const existing = deduped[seen.get(v.id)];
+      // short는 video/live를 덮어쓰지 않는다 (video/live 우선)
+      if (existing.type !== 'short' && v.type === 'short') continue;
       deduped[seen.get(v.id)] = v;
     }
   }
