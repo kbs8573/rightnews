@@ -1003,12 +1003,10 @@ function isLiveVideo(v) {
 }
 
 function pickHeroVideo(videos) {
-  const candidates = videos.filter(v => (v.type || 'video') !== 'short');
-  const pool_src = candidates.length ? candidates : videos;
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayVids = pool_src.filter(v => new Date(v.publishedAt) >= todayStart);
-  const pool = todayVids.length ? todayVids : pool_src;
-  return pool[Math.floor(Math.random() * pool.length)] || pool_src[0];
+  const todayVids = videos.filter(v => (v.type || 'video') !== 'short' && new Date(v.publishedAt) >= todayStart);
+  const pool = todayVids.length ? todayVids : videos.filter(v => (v.type || 'video') !== 'short');
+  return pool[Math.floor(Math.random() * pool.length)] || videos[0];
 }
 
 function getBucket(pub) {
